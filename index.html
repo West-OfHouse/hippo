@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>Hippo Survival</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="game">
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="hud">
+            <div id="healthText">HP: 100</div>
+            <div id="weaponText">Weapon: Pistol</div>
+            <div id="scoreText">Score: 0</div>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <h1>GAME OVER</h1>
+            <p id="finalScore">Score: 0</p>
+            <button id="restartButton">Restart</button>
+        </div>
+
+    </div>
+
+    <script src="game.js"></script>
+
+</body>
+</html>
