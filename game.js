@@ -2,14 +2,23 @@ const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");
 const healthText=document.getElementById("healthText"),weaponText=document.getElementById("weaponText"),scoreText=document.getElementById("scoreText");
 const gameOverScreen=document.getElementById("gameOverScreen"),finalScore=document.getElementById("finalScore"),restartButton=document.getElementById("restartButton");
 
-let width=0,height=0,pixelRatio=1,gameRunning=true,score=0,lastTime=0,lastShot=0,survivalTime=0;
+let width=0,height=0,pixelRatio=1,gameRunning=true,score=0,coins=0,lastTime=0,lastShot=0,survivalTime=0;
 let enemySpawnTimer=0,weaponSpawnTimer=0,powerupSpawnTimer=0,teslaTimer=0,orbitAngle=0;
-let enemies=[],bullets=[],weaponPickups=[],powerups=[],explosions=[],lightningEffects=[],particles=[],weaponBag=[];
+let enemies=[],bullets=[],weaponPickups=[],powerups=[],coinDrops=[],explosions=[],lightningEffects=[],particles=[],weaponBag=[];
 
 const hippoImage=new Image();
 hippoImage.src="hippo.png";
 
-const player={x:0,y:0,radius:18,speed:295,health:150,maxHealth:150,shield:0,color:"#55ccff",weaponKey:"pistol"};
+const player={
+  x:0,y:0,
+  radius:18,
+  hitRadius:10,
+  speed:295,
+  health:150,maxHealth:150,
+  shield:0,
+  color:"#55ccff",
+  weaponKey:"pistol"
+};
 
 const WEAPONS={
   pistol:{name:"Pistol",type:"normal",damage:42,fireRate:350,bulletSpeed:800,bulletSize:6,color:"#fff"},
@@ -76,24 +85,28 @@ window.addEventListener("blur",()=>{pointerActive=false;for(const k in keys)keys
 canvas.addEventListener("touchstart",e=>{
   e.preventDefault();
   const t=e.touches[0];
-  pointerActive=true;
-  pointerX=t.clientX;
-  pointerY=t.clientY;
+  pointerActive=true;pointerX=t.clientX;pointerY=t.clientY;
 },{passive:false});
 
 canvas.addEventListener("touchmove",e=>{
   e.preventDefault();
   const t=e.touches[0];
-  pointerX=t.clientX;
-  pointerY=t.clientY;
+  pointerX=t.clientX;pointerY=t.clientY;
 },{passive:false});
 
 canvas.addEventListener("touchend",e=>{e.preventDefault();pointerActive=false},{passive:false});
 canvas.addEventListener("touchcancel",()=>pointerActive=false);
 
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const touching=(a,b)=>{const r=a.radius+b.radius,dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy<r*r};
-const randomPos=(p=80)=>({x:p+Math.random()*Math.max(1,width-p*2),y:p+Math.random()*Math.max(1,height-p*2)});
+const radiusOf=o=>o.hitRadius??o.radius;
+const touching=(a,b)=>{
+  const r=radiusOf(a)+radiusOf(b),dx=a.x-b.x,dy=a.y-b.y;
+  return dx*dx+dy*dy<r*r;
+};
+const randomPos=(p=80)=>({
+  x:p+Math.random()*Math.max(1,width-p*2),
+  y:p+Math.random()*Math.max(1,height-p*2)
+});
 
 function onScreen(e){
   const half=e.radius*1.325,pad=14;
@@ -111,6 +124,7 @@ function refillWeaponBag(){
 function spawnEnemy(){
   const side=Math.floor(Math.random()*4),m=50;
   let x,y;
+
   if(side===0){x=Math.random()*width;y=-m}
   else if(side===1){x=width+m;y=Math.random()*height}
   else if(side===2){x=Math.random()*width;y=height+m}
@@ -118,15 +132,20 @@ function spawnEnemy(){
 
   const difficulty=1+score/650,radius=19+Math.random()*4,maxSpeed=70+Math.random()*28+difficulty*3;
   const dx=player.x-x,dy=player.y-y,d=Math.hypot(dx,dy)||1,startSpeed=maxSpeed*.7;
+  const hp=70+difficulty*12;
 
   enemies.push({
     x,y,radius,
-    vx:dx/d*startSpeed,vy:dy/d*startSpeed,
-    maxSpeed,baseMaxSpeed:maxSpeed,
+    vx:dx/d*startSpeed,
+    vy:dy/d*startSpeed,
+    baseMaxSpeed:maxSpeed,
     steering:120+Math.random()*35,
-    health:70+difficulty*12,maxHealth:70+difficulty*12,
+    health:hp,maxHealth:hp,
     damage:17+difficulty*.45,
-    hitCooldown:0,slowTimer:0,dead:false,bladeHit:0
+    hitCooldown:0,
+    slowTimer:0,
+    dead:false,
+    bladeHit:0
   });
 }
 
@@ -138,17 +157,41 @@ function spawnWeaponPickup(){
 
 function spawnPowerup(){
   const ks=Object.keys(POWERUPS),key=ks[Math.floor(Math.random()*ks.length)],p=randomPos();
-  powerups.push({x:p.x,y:p.y,radius:19,key,life:18000,pulse:0});
+  powerups.push({x:p.x,y:p.y,radius:19,key,life:20000,pulse:0});
+}
+
+function spawnCoins(x,y){
+  const count=1+Math.floor(Math.random()*3);
+
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2,s=35+Math.random()*80;
+
+    coinDrops.push({
+      x,y,
+      vx:Math.cos(a)*s,
+      vy:Math.sin(a)*s,
+      radius:6,
+      life:30000,
+      value:1
+    });
+  }
 }
 
 function findNearestEnemy(source=player,excluded=new Set(),visibleOnly=true){
   let best=null,bestD=Infinity;
+
   for(const e of enemies){
     if(e.dead||excluded.has(e))continue;
     if(visibleOnly&&!onScreen(e))continue;
+
     const d=dist(source,e);
-    if(d<bestD){bestD=d;best=e}
+
+    if(d<bestD){
+      bestD=d;
+      best=e;
+    }
   }
+
   return best;
 }
 
@@ -159,11 +202,18 @@ function damageMult(){
 }
 
 function fireRate(w){
-  return Math.max(35,w.fireRate*Math.pow(.8,buffs.haste.stacks)*Math.pow(.82,buffs.overdrive.stacks)*Math.pow(.9,buffs.berserk.stacks));
+  return Math.max(
+    35,
+    w.fireRate*
+    Math.pow(.8,buffs.haste.stacks)*
+    Math.pow(.82,buffs.overdrive.stacks)*
+    Math.pow(.9,buffs.berserk.stacks)
+  );
 }
 
 function damageEnemy(e,dmg,knockback=0,angle=0){
   if(!e||e.dead)return;
+
   e.health-=dmg*damageMult();
 
   if(knockback){
@@ -176,12 +226,14 @@ function damageEnemy(e,dmg,knockback=0,angle=0){
   if(e.health<=0){
     e.dead=true;
     score+=10;
-    createDeathParticles(e.x,e.y);
+
+    createBloodExplosion(e.x,e.y);
+    spawnCoins(e.x,e.y);
   }
 }
 
 function chainFromEnemy(start,damage,chains,range,color,excluded=new Set()){
-  let current=start,currentDamage=damage,from={x:start.x,y:start.y};
+  let from={x:start.x,y:start.y},dmg=damage;
   const hit=new Set(excluded);
   hit.add(start);
 
@@ -190,17 +242,28 @@ function chainFromEnemy(start,damage,chains,range,color,excluded=new Set()){
 
     for(const e of enemies){
       if(e.dead||hit.has(e)||!onScreen(e))continue;
+
       const d=Math.hypot(e.x-from.x,e.y-from.y);
-      if(d<range&&d<best){best=d;next=e}
+
+      if(d<range&&d<best){
+        best=d;
+        next=e;
+      }
     }
 
     if(!next)break;
 
-    lightningEffects.push({x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:130,color});
-    damageEnemy(next,currentDamage);
+    lightningEffects.push({
+      x1:from.x,y1:from.y,
+      x2:next.x,y2:next.y,
+      life:130,color
+    });
+
+    damageEnemy(next,dmg);
+
     hit.add(next);
     from={x:next.x,y:next.y};
-    currentDamage*=.82;
+    dmg*=.82;
   }
 }
 
@@ -208,10 +271,11 @@ function shoot(time){
   const w=weapon();
   if(w.type==="orbit")return;
 
-  const target=findNearestEnemy(player,new Set(),true);
+  const target=findNearestEnemy();
   if(!target||time-lastShot<fireRate(w))return;
 
   lastShot=time;
+
   const angle=Math.atan2(target.y-player.y,target.x-player.x);
 
   if(w.type==="shotgun"){
@@ -226,11 +290,14 @@ function shoot(time){
 
   if(w.type==="nova"){
     createBullet(angle,w);
+
     const n=w.sideShots+buffs.overdrive.stacks;
+
     for(let i=1;i<=n;i++){
       createBullet(angle-.18*i,w);
       createBullet(angle+.18*i,w);
     }
+
     return;
   }
 
@@ -273,7 +340,12 @@ function fireArc(first,w){
   for(let i=0;i<chains&&cur;i++){
     if(!onScreen(cur))break;
 
-    lightningEffects.push({x1:start.x,y1:start.y,x2:cur.x,y2:cur.y,life:130,color:w.color});
+    lightningEffects.push({
+      x1:start.x,y1:start.y,
+      x2:cur.x,y2:cur.y,
+      life:130,color:w.color
+    });
+
     damageEnemy(cur,dmg);
     hit.add(cur);
 
@@ -281,21 +353,33 @@ function fireArc(first,w){
     dmg=w.chainDamage;
 
     let next=null,best=Infinity;
+
     for(const e of enemies){
       if(e.dead||hit.has(e)||!onScreen(e))continue;
+
       const d=Math.hypot(e.x-start.x,e.y-start.y);
-      if(d<w.chainRange&&d<best){best=d;next=e}
+
+      if(d<w.chainRange&&d<best){
+        best=d;
+        next=e;
+      }
     }
+
     cur=next;
   }
 }
 
 function createExplosion(x,y,radius,damage,duration=300,color="#c45cff"){
   explosions.push({x,y,radius:0,maxRadius:radius,life:duration,duration,color});
+
   for(const e of enemies){
     if(e.dead)continue;
+
     const d=Math.hypot(e.x-x,e.y-y);
-    if(d<radius)damageEnemy(e,damage*(.4+(1-d/radius)*.6));
+
+    if(d<radius){
+      damageEnemy(e,damage*(.4+(1-d/radius)*.6));
+    }
   }
 }
 
@@ -331,15 +415,18 @@ function updatePlayer(dt){
 
   if(dx||dy){
     const d=Math.hypot(dx,dy);
+
     player.x+=dx/d*speed*dt;
     player.y+=dy/d*speed*dt;
   }else if(pointerActive){
     dx=pointerX-player.x;
     dy=pointerY-player.y;
+
     const d=Math.hypot(dx,dy);
 
     if(d>5){
       const m=Math.min(speed*dt,d);
+
       player.x+=dx/d*m;
       player.y+=dy/d*m;
     }
@@ -369,6 +456,7 @@ function updateEnemies(dt){
     const desiredVX=dx/d*maxSpeed,desiredVY=dy/d*maxSpeed;
 
     let sx=desiredVX-e.vx,sy=desiredVY-e.vy;
+
     const sl=Math.hypot(sx,sy),maxSteer=e.steering*dt;
 
     if(sl>maxSteer&&sl>0){
@@ -388,6 +476,7 @@ function updateEnemies(dt){
 
     e.x+=e.vx*dt;
     e.y+=e.vy*dt;
+
     e.hitCooldown-=dt*1000;
 
     if(touching(player,e)&&e.hitCooldown<=0){
@@ -395,6 +484,7 @@ function updateEnemies(dt){
 
       if(player.shield>0){
         const absorbed=Math.min(player.shield,damage);
+
         player.shield-=absorbed;
         damage-=absorbed;
       }
@@ -416,20 +506,22 @@ function updateEnemies(dt){
 function updateBullets(dt){
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
+
     b.life-=dt*1000;
 
     if(b.type==="homing"){
       const target=findNearestEnemy(b,new Set(),true);
 
       if(target){
-        const targetAngle=Math.atan2(target.y-b.y,target.x-b.x);
-        let diff=Math.atan2(Math.sin(targetAngle-b.angle),Math.cos(targetAngle-b.angle));
+        const ta=Math.atan2(target.y-b.y,target.x-b.x);
+        const diff=Math.atan2(Math.sin(ta-b.angle),Math.cos(ta-b.angle));
 
         b.angle+=diff*b.homingStrength*dt;
 
-        const s=Math.hypot(b.vx,b.vy);
-        b.vx=Math.cos(b.angle)*s;
-        b.vy=Math.sin(b.angle)*s;
+        const speed=Math.hypot(b.vx,b.vy);
+
+        b.vx=Math.cos(b.angle)*speed;
+        b.vy=Math.sin(b.angle)*speed;
       }
     }
 
@@ -440,9 +532,10 @@ function updateBullets(dt){
         const dx=b.x-e.x,dy=b.y-e.y,d=Math.hypot(dx,dy);
 
         if(d>1&&d<b.pullRadius){
-          const force=b.pullStrength*(1-d/b.pullRadius)*dt;
-          e.vx+=dx/d*force;
-          e.vy+=dy/d*force;
+          const f=b.pullStrength*(1-d/b.pullRadius)*dt;
+
+          e.vx+=dx/d*f;
+          e.vy+=dy/d*f;
         }
       }
     }
@@ -453,7 +546,10 @@ function updateBullets(dt){
     const expired=b.life<=0||b.x<-180||b.x>width+180||b.y<-180||b.y>height+180;
 
     if(expired){
-      if(b.type==="singularity")createExplosion(b.x,b.y,b.explosionRadius,b.explosionDamage,350,b.color);
+      if(b.type==="singularity"){
+        createExplosion(b.x,b.y,b.explosionRadius,b.explosionDamage,350,b.color);
+      }
+
       bullets.splice(i,1);
       continue;
     }
@@ -465,9 +561,10 @@ function updateBullets(dt){
 
       if(touching(b,e)){
         b.hitEnemies.add(e);
+
         damageEnemy(e,b.damage,b.knockback,b.angle);
 
-        if(buffs.chain.stacks>0){
+        if(buffs.chain.stacks){
           chainFromEnemy(
             e,
             b.damage*.45,
@@ -517,7 +614,8 @@ function updateTesla(dt){
 
   teslaTimer=0;
 
-  const target=findNearestEnemy(player,new Set(),true);
+  const target=findNearestEnemy();
+
   if(!target)return;
 
   const damage=35+buffs.tesla.stacks*18;
@@ -537,14 +635,21 @@ function updateTesla(dt){
 
 function updateSolarBlades(dt){
   const w=weapon();
+
   if(w.type!=="orbit")return;
 
   orbitAngle+=dt*3.8;
+
   const count=w.blades+buffs.overdrive.stacks;
 
   for(let i=0;i<count;i++){
     const a=orbitAngle+Math.PI*2/count*i;
-    const blade={x:player.x+Math.cos(a)*72,y:player.y+Math.sin(a)*72,radius:12};
+
+    const blade={
+      x:player.x+Math.cos(a)*72,
+      y:player.y+Math.sin(a)*72,
+      radius:12
+    };
 
     for(const e of enemies){
       if(e.dead)continue;
@@ -553,19 +658,24 @@ function updateSolarBlades(dt){
         damageEnemy(e,w.damage);
         e.bladeHit=performance.now();
 
-        if(buffs.chain.stacks>0){
-          chainFromEnemy(e,w.damage*.35,buffs.chain.stacks,130+buffs.chain.stacks*35,"#00ffff");
+        if(buffs.chain.stacks){
+          chainFromEnemy(
+            e,
+            w.damage*.35,
+            buffs.chain.stacks,
+            130+buffs.chain.stacks*35,
+            "#00ffff"
+          );
         }
       }
     }
   }
 }
 
-function pullPickup(p,dt){
+function pullTowardPlayer(p,dt,range,speed){
   const dx=player.x-p.x,dy=player.y-p.y,d=Math.hypot(dx,dy);
-  const range=300+buffs.magnet.stacks*90,speed=350+buffs.magnet.stacks*80;
 
-  if(d<range&&d>1){
+  if(d>1&&d<range){
     p.x+=dx/d*speed*dt;
     p.y+=dy/d*speed*dt;
   }
@@ -574,9 +684,8 @@ function pullPickup(p,dt){
 function updatePickups(dt){
   for(let i=weaponPickups.length-1;i>=0;i--){
     const p=weaponPickups[i];
-    p.life-=dt*1000;
 
-    if(buffs.magnet.stacks)pullPickup(p,dt);
+    p.life-=dt*1000;
 
     if(p.life<=0){
       weaponPickups.splice(i,1);
@@ -591,10 +700,17 @@ function updatePickups(dt){
 
   for(let i=powerups.length-1;i>=0;i--){
     const p=powerups[i];
+
     p.life-=dt*1000;
     p.pulse+=dt*5;
 
-    if(buffs.magnet.stacks)pullPickup(p,dt);
+    if(buffs.magnet.stacks){
+      pullTowardPlayer(
+        p,dt,
+        300+buffs.magnet.stacks*110,
+        350+buffs.magnet.stacks*100
+      );
+    }
 
     if(p.life<=0){
       powerups.splice(i,1);
@@ -604,6 +720,41 @@ function updatePickups(dt){
     if(touching(player,p)){
       activatePowerup(p.key);
       powerups.splice(i,1);
+    }
+  }
+}
+
+function updateCoins(dt){
+  for(let i=coinDrops.length-1;i>=0;i--){
+    const c=coinDrops[i];
+
+    c.life-=dt*1000;
+
+    c.x+=c.vx*dt;
+    c.y+=c.vy*dt;
+
+    c.vx*=Math.pow(.02,dt);
+    c.vy*=Math.pow(.02,dt);
+
+    if(buffs.magnet.stacks){
+      pullTowardPlayer(
+        c,dt,
+        320+buffs.magnet.stacks*140,
+        450+buffs.magnet.stacks*120
+      );
+    }else{
+      pullTowardPlayer(c,dt,55,190);
+    }
+
+    if(c.life<=0){
+      coinDrops.splice(i,1);
+      continue;
+    }
+
+    if(touching(player,c)){
+      coins+=c.value;
+      score+=2*c.value;
+      coinDrops.splice(i,1);
     }
   }
 }
@@ -626,28 +777,40 @@ function updateBuffs(dt){
 }
 
 function createHitParticles(x,y){
-  for(let i=0;i<3;i++)particles.push({
-    x,y,
-    vx:(Math.random()-.5)*180,
-    vy:(Math.random()-.5)*180,
-    radius:2+Math.random()*3,
-    life:250
-  });
+  for(let i=0;i<3;i++){
+    particles.push({
+      x,y,
+      vx:(Math.random()-.5)*150,
+      vy:(Math.random()-.5)*150,
+      radius:2+Math.random()*2,
+      life:180,
+      color:"#ffffff",
+      gravity:0
+    });
+  }
 }
 
-function createDeathParticles(x,y){
-  for(let i=0;i<10;i++)particles.push({
-    x,y,
-    vx:(Math.random()-.5)*300,
-    vy:(Math.random()-.5)*300,
-    radius:3+Math.random()*5,
-    life:500
-  });
+function createBloodExplosion(x,y){
+  for(let i=0;i<24;i++){
+    const a=Math.random()*Math.PI*2,s=70+Math.random()*260;
+
+    particles.push({
+      x,y,
+      vx:Math.cos(a)*s,
+      vy:Math.sin(a)*s,
+      radius:2+Math.random()*5,
+      life:450+Math.random()*500,
+      color:Math.random()<.5?"#8b0000":"#d40000",
+      gravity:110
+    });
+  }
 }
 
 function updateEffects(dt){
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];
+
+    p.vy+=(p.gravity||0)*dt;
     p.x+=p.vx*dt;
     p.y+=p.vy*dt;
     p.life-=dt*1000;
@@ -657,6 +820,7 @@ function updateEffects(dt){
 
   for(let i=explosions.length-1;i>=0;i--){
     const e=explosions[i];
+
     e.life-=dt*1000;
     e.radius=Math.max(0,e.maxRadius*Math.max(0,Math.min(1,1-e.life/e.duration)));
 
@@ -665,7 +829,10 @@ function updateEffects(dt){
 
   for(let i=lightningEffects.length-1;i>=0;i--){
     lightningEffects[i].life-=dt*1000;
-    if(lightningEffects[i].life<=0)lightningEffects.splice(i,1);
+
+    if(lightningEffects[i].life<=0){
+      lightningEffects.splice(i,1);
+    }
   }
 }
 
@@ -715,7 +882,12 @@ function drawEnemies(){
     const size=e.radius*2.65;
 
     if(hippoImage.complete&&hippoImage.naturalWidth){
-      ctx.drawImage(hippoImage,e.x-size/2,e.y-size/2,size,size);
+      ctx.drawImage(
+        hippoImage,
+        e.x-size/2,
+        e.y-size/2,
+        size,size
+      );
     }else{
       ctx.beginPath();
       ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
@@ -730,14 +902,41 @@ function drawEnemies(){
       ctx.fillRect(e.x-w/2,e.y-e.radius-8,w,4);
 
       ctx.fillStyle="#ff4444";
-      ctx.fillRect(e.x-w/2,e.y-e.radius-8,w*Math.max(0,e.health/e.maxHealth),4);
+      ctx.fillRect(
+        e.x-w/2,
+        e.y-e.radius-8,
+        w*Math.max(0,e.health/e.maxHealth),
+        4
+      );
     }
+  }
+}
+
+function drawCoins(){
+  for(const c of coinDrops){
+    ctx.save();
+
+    ctx.shadowBlur=10;
+    ctx.shadowColor="#ffd700";
+
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.radius,0,Math.PI*2);
+
+    ctx.fillStyle="#ffd700";
+    ctx.fill();
+
+    ctx.strokeStyle="#fff2a8";
+    ctx.lineWidth=2;
+    ctx.stroke();
+
+    ctx.restore();
   }
 }
 
 function drawBullets(){
   for(const b of bullets){
     ctx.save();
+
     ctx.shadowBlur=b.type==="singularity"?25:12;
     ctx.shadowColor=b.color;
 
@@ -760,6 +959,7 @@ function drawBullets(){
 
 function drawSolarBlades(){
   const w=weapon();
+
   if(w.type!=="orbit")return;
 
   const count=w.blades+buffs.overdrive.stacks;
@@ -771,10 +971,13 @@ function drawSolarBlades(){
     ctx.save();
     ctx.translate(x,y);
     ctx.rotate(a);
+
     ctx.shadowBlur=15;
     ctx.shadowColor=w.color;
+
     ctx.fillStyle=w.color;
     ctx.fillRect(-5,-18,10,36);
+
     ctx.restore();
   }
 }
@@ -784,11 +987,13 @@ function drawWeaponPickups(){
     const w=WEAPONS[p.weaponKey];
 
     ctx.save();
+
     ctx.shadowBlur=18;
     ctx.shadowColor=w.color;
 
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
+
     ctx.fillStyle="#111";
     ctx.fill();
 
@@ -819,11 +1024,13 @@ function drawPowerups(){
     const data=POWERUPS[p.key],pulse=1+Math.sin(p.pulse)*.12;
 
     ctx.save();
+
     ctx.shadowBlur=20;
     ctx.shadowColor=data.color;
 
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.radius*pulse,0,Math.PI*2);
+
     ctx.fillStyle=data.color;
     ctx.fill();
 
@@ -831,6 +1038,7 @@ function drawPowerups(){
     ctx.font="bold 8px Arial";
     ctx.textAlign="center";
     ctx.textBaseline="middle";
+
     ctx.fillText(data.name,p.x,p.y);
 
     ctx.restore();
@@ -839,18 +1047,27 @@ function drawPowerups(){
 
 function drawEffects(){
   for(const p of particles){
+    ctx.save();
+
+    ctx.globalAlpha=Math.min(1,p.life/250);
+
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
-    ctx.fillStyle="#fff";
+
+    ctx.fillStyle=p.color||"#fff";
     ctx.fill();
+
+    ctx.restore();
   }
 
   for(const e of explosions){
     ctx.save();
+
     ctx.globalAlpha=Math.max(0,e.life/e.duration);
 
     ctx.beginPath();
     ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
+
     ctx.strokeStyle=e.color;
     ctx.lineWidth=10;
     ctx.stroke();
@@ -860,8 +1077,10 @@ function drawEffects(){
 
   for(const l of lightningEffects){
     ctx.save();
+
     ctx.shadowBlur=15;
     ctx.shadowColor=l.color;
+
     ctx.strokeStyle=l.color;
     ctx.lineWidth=4;
 
@@ -879,6 +1098,7 @@ function drawEffects(){
 
     ctx.lineTo(l.x2,l.y2);
     ctx.stroke();
+
     ctx.restore();
   }
 }
@@ -902,10 +1122,16 @@ function drawBuffs(){
 
   for(const k in buffs){
     const b=buffs[k];
+
     if(!b.stacks||!b.time)continue;
 
     ctx.fillStyle="#fff";
-    ctx.fillText(`${labels[k]} x${b.stacks} ${(b.time/1000).toFixed(1)}s`,12,y);
+
+    ctx.fillText(
+      `${labels[k]} x${b.stacks} ${(b.time/1000).toFixed(1)}s`,
+      12,y
+    );
+
     y+=17;
   }
 
@@ -918,12 +1144,12 @@ function drawBuffs(){
 function updateHUD(){
   healthText.textContent=`HP: ${Math.ceil(player.health)}`;
   weaponText.textContent=weapon().name;
-  scoreText.textContent=`Score: ${score}`;
+  scoreText.textContent=`Score: ${score} | Coins: ${coins}`;
 }
 
 function endGame(){
   gameRunning=false;
-  finalScore.textContent=`Score: ${score}`;
+  finalScore.textContent=`Score: ${score} | Coins: ${coins}`;
   gameOverScreen.classList.remove("hidden");
 }
 
@@ -932,11 +1158,13 @@ function resetGame(){
   bullets=[];
   weaponPickups=[];
   powerups=[];
+  coinDrops=[];
   explosions=[];
   particles=[];
   lightningEffects=[];
 
   score=0;
+  coins=0;
   survivalTime=0;
 
   player.x=width/2;
@@ -962,8 +1190,8 @@ function resetGame(){
   teslaTimer=0;
   orbitAngle=0;
   pointerActive=false;
-  gameRunning=true;
 
+  gameRunning=true;
   gameOverScreen.classList.add("hidden");
 
   spawnWeaponPickup();
@@ -977,6 +1205,7 @@ restartButton.addEventListener("click",resetGame);
 
 function gameLoop(time){
   const dt=Math.min((time-lastTime)/1000,.05);
+
   lastTime=time;
 
   drawBackground();
@@ -988,11 +1217,12 @@ function gameLoop(time){
     weaponSpawnTimer+=dt*1000;
     powerupSpawnTimer+=dt*1000;
 
+    const alive=enemies.filter(e=>!e.dead).length;
     const enemyRate=Math.max(280,1150-score*.8);
 
     const powerupRate=Math.max(
-      2800,
-      9000-survivalTime*55
+      1800,
+      9000-alive*150-survivalTime*12
     );
 
     if(enemySpawnTimer>=enemyRate){
@@ -1010,11 +1240,12 @@ function gameLoop(time){
 
       let count=1;
 
-      if(survivalTime>60)count=2;
-      if(survivalTime>120)count=3;
-      if(survivalTime>180)count=4;
+      if(alive>=18)count=2;
+      if(alive>=32)count=3;
 
-      for(let i=0;i<count;i++)spawnPowerup();
+      for(let i=0;i<count;i++){
+        spawnPowerup();
+      }
     }
 
     updatePlayer(dt);
@@ -1023,6 +1254,7 @@ function gameLoop(time){
     updateSolarBlades(dt);
     updateTesla(dt);
     updatePickups(dt);
+    updateCoins(dt);
     updateBuffs(dt);
     updateEffects(dt);
 
@@ -1032,6 +1264,7 @@ function gameLoop(time){
 
   drawWeaponPickups();
   drawPowerups();
+  drawCoins();
   drawEnemies();
   drawBullets();
   drawSolarBlades();
@@ -1056,4 +1289,5 @@ spawnPowerup();
 updateHUD();
 
 lastTime=performance.now();
+
 requestAnimationFrame(gameLoop);
