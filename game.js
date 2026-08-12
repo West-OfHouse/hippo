@@ -1,3900 +1,874 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");
+const healthText=document.getElementById("healthText"),weaponText=document.getElementById("weaponText"),scoreText=document.getElementById("scoreText");
+const gameOverScreen=document.getElementById("gameOverScreen"),finalScore=document.getElementById("finalScore"),restartButton=document.getElementById("restartButton");
 
-const healthText = document.getElementById("healthText");
-const weaponText = document.getElementById("weaponText");
-const scoreText = document.getElementById("scoreText");
-const gameOverScreen = document.getElementById("gameOverScreen");
-const finalScore = document.getElementById("finalScore");
-const restartButton = document.getElementById("restartButton");
+let width=0,height=0,pixelRatio=1,gameRunning=true,score=0,lastTime=0,lastShot=0;
+let enemySpawnTimer=0,weaponSpawnTimer=0,powerupSpawnTimer=0,orbitAngle=0;
+let enemies=[],bullets=[],weaponPickups=[],powerups=[],explosions=[],lightningEffects=[],particles=[],weaponBag=[];
 
-let width = 0;
-let height = 0;
-let pixelRatio = 1;
+const hippoImage=new Image();
+hippoImage.src="hippo.png";
 
-const hippoImage = new Image();
-hippoImage.src = "hippo.png";
+const player={x:0,y:0,radius:18,speed:295,health:150,maxHealth:150,shield:0,color:"#55ccff",weaponKey:"pistol"};
 
-const player = {
-    x: 0,
-    y: 0,
-    radius: 18,
-    speed: 295,
-    health: 150,
-    maxHealth: 150,
-    color: "#55ccff",
-    weaponKey: "pistol",
-    shield: 0
+const WEAPONS={
+  pistol:{name:"Pistol",type:"normal",damage:42,fireRate:350,bulletSpeed:800,bulletSize:6,color:"#fff"},
+  plasma:{name:"Plasma SMG",type:"normal",damage:22,fireRate:80,bulletSpeed:850,bulletSize:5,color:"#00eaff"},
+  shotgun:{name:"Titan Shotgun",type:"shotgun",damage:38,fireRate:620,bulletSpeed:720,bulletSize:7,pellets:9,spread:.8,knockback:50,color:"#ff9d00"},
+  railgun:{name:"Railgun",type:"railgun",damage:155,fireRate:850,bulletSpeed:1600,bulletSize:7,pierce:7,color:"#e600ff"},
+  void:{name:"Void Cannon",type:"explosive",damage:95,fireRate:1000,bulletSpeed:475,bulletSize:14,explosionRadius:145,explosionDamage:115,color:"#8c52ff"},
+  arc:{name:"Arc Blaster",type:"arc",damage:72,fireRate:630,chainDamage:52,chains:5,chainRange:175,color:"#66ffff"},
+  starfire:{name:"Starfire Wand",type:"homing",damage:58,fireRate:250,bulletSpeed:540,bulletSize:8,homingStrength:7,color:"#ff4fd8"},
+  frost:{name:"Frost Repeater",type:"frost",damage:28,fireRate:115,bulletSpeed:760,bulletSize:6,slow:.5,slowTime:2500,color:"#9fe8ff"},
+  solar:{name:"Solar Blades",type:"orbit",damage:90,blades:4,color:"#ffda44"},
+  nova:{name:"Nova Lance",type:"nova",damage:75,fireRate:420,bulletSpeed:900,bulletSize:8,sideShots:2,color:"#ff6bff"},
+  singularity:{name:"Singularity Gun",type:"singularity",damage:35,fireRate:1250,bulletSpeed:380,bulletSize:16,pullRadius:180,pullStrength:170,explosionRadius:115,explosionDamage:85,color:"#6d3cff"}
 };
 
-
-// ======================================================
-// WEAPONS
-// ======================================================
-
-const WEAPONS = {
-    pistol: {
-        name: "Pistol",
-        type: "normal",
-        damage: 42,
-        fireRate: 350,
-        bulletSpeed: 800,
-        bulletSize: 6,
-        color: "#ffffff"
-    },
-
-    plasma: {
-        name: "Plasma SMG",
-        type: "normal",
-        damage: 22,
-        fireRate: 80,
-        bulletSpeed: 850,
-        bulletSize: 5,
-        color: "#00eaff"
-    },
-
-    shotgun: {
-        name: "Titan Shotgun",
-        type: "shotgun",
-        damage: 38,
-        fireRate: 620,
-        bulletSpeed: 720,
-        bulletSize: 7,
-        pellets: 9,
-        spread: 0.8,
-        knockback: 50,
-        color: "#ff9d00"
-    },
-
-    railgun: {
-        name: "Railgun",
-        type: "railgun",
-        damage: 155,
-        fireRate: 850,
-        bulletSpeed: 1600,
-        bulletSize: 7,
-        pierce: 7,
-        color: "#e600ff"
-    },
-
-    void: {
-        name: "Void Cannon",
-        type: "explosive",
-        damage: 95,
-        fireRate: 1000,
-        bulletSpeed: 475,
-        bulletSize: 14,
-        explosionRadius: 145,
-        explosionDamage: 115,
-        color: "#8c52ff"
-    },
-
-    arc: {
-        name: "Arc Blaster",
-        type: "arc",
-        damage: 72,
-        fireRate: 630,
-        chainDamage: 52,
-        chains: 5,
-        chainRange: 175,
-        color: "#66ffff"
-    },
-
-    starfire: {
-        name: "Starfire Wand",
-        type: "homing",
-        damage: 58,
-        fireRate: 250,
-        bulletSpeed: 540,
-        bulletSize: 8,
-        homingStrength: 7,
-        color: "#ff4fd8"
-    },
-
-    frost: {
-        name: "Frost Repeater",
-        type: "frost",
-        damage: 28,
-        fireRate: 115,
-        bulletSpeed: 760,
-        bulletSize: 6,
-        slow: 0.5,
-        slowTime: 2500,
-        color: "#9fe8ff"
-    },
-
-    solar: {
-        name: "Solar Blades",
-        type: "orbit",
-        damage: 90,
-        fireRate: 0,
-        blades: 4,
-        color: "#ffda44"
-    },
-
-    nova: {
-        name: "Nova Lance",
-        type: "nova",
-        damage: 75,
-        fireRate: 420,
-        bulletSpeed: 900,
-        bulletSize: 8,
-        sideShots: 2,
-        color: "#ff6bff"
-    },
-
-    singularity: {
-        name: "Singularity Gun",
-        type: "singularity",
-        damage: 35,
-        fireRate: 1250,
-        bulletSpeed: 380,
-        bulletSize: 16,
-        pullRadius: 180,
-        pullStrength: 170,
-        explosionRadius: 115,
-        explosionDamage: 85,
-        color: "#6d3cff"
-    }
+const POWERUPS={
+  heal:{name:"HEAL",color:"#40ff75"},
+  shield:{name:"SHIELD",color:"#5ac8ff"},
+  quad:{name:"DAMAGE",color:"#ff3838"},
+  haste:{name:"HASTE",color:"#ffe600"},
+  overdrive:{name:"OVERDRIVE",color:"#ff7b00"},
+  nuke:{name:"NUKE",color:"#fff"},
+  magnet:{name:"MAGNET",color:"#c451ff"},
+  berserk:{name:"BERSERK",color:"#ff0055"}
 };
 
-
-// ======================================================
-// POWERUPS
-// ======================================================
-
-const POWERUPS = {
-    heal: {
-        name: "HEAL",
-        color: "#40ff75"
-    },
-
-    shield: {
-        name: "SHIELD",
-        color: "#5ac8ff"
-    },
-
-    quad: {
-        name: "DAMAGE",
-        color: "#ff3838"
-    },
-
-    haste: {
-        name: "HASTE",
-        color: "#ffe600"
-    },
-
-    overdrive: {
-        name: "OVERDRIVE",
-        color: "#ff7b00"
-    },
-
-    nuke: {
-        name: "NUKE",
-        color: "#ffffff"
-    },
-
-    magnet: {
-        name: "MAGNET",
-        color: "#c451ff"
-    },
-
-    berserk: {
-        name: "BERSERK",
-        color: "#ff0055"
-    }
+const buffs={
+  quad:{stacks:0,time:0,maxStacks:3},
+  haste:{stacks:0,time:0,maxStacks:3},
+  overdrive:{stacks:0,time:0,maxStacks:3},
+  magnet:{stacks:0,time:0,maxStacks:2},
+  berserk:{stacks:0,time:0,maxStacks:3}
 };
 
+let pointerActive=false,pointerX=0,pointerY=0;
+const keys={};
 
-// ======================================================
-// STACKABLE BUFFS
-// ======================================================
+function resizeCanvas(){
+  pixelRatio=Math.min(window.devicePixelRatio||1,2);
+  width=window.innerWidth;height=window.innerHeight;
+  canvas.width=width*pixelRatio;canvas.height=height*pixelRatio;
+  canvas.style.width=width+"px";canvas.style.height=height+"px";
+  ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+}
+window.addEventListener("resize",resizeCanvas);
 
-const buffs = {
-    quad: {
-        stacks: 0,
-        time: 0,
-        maxStacks: 3
-    },
+canvas.addEventListener("mousedown",e=>{if(e.button!==0)return;pointerActive=true;pointerX=e.clientX;pointerY=e.clientY});
+window.addEventListener("mousemove",e=>{if(pointerActive){pointerX=e.clientX;pointerY=e.clientY}});
+window.addEventListener("mouseup",e=>{if(e.button===0)pointerActive=false});
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=true;if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault()});
+window.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+window.addEventListener("blur",()=>{pointerActive=false;for(const k in keys)keys[k]=false});
 
-    haste: {
-        stacks: 0,
-        time: 0,
-        maxStacks: 3
-    },
+canvas.addEventListener("touchstart",e=>{e.preventDefault();const t=e.touches[0];pointerActive=true;pointerX=t.clientX;pointerY=t.clientY},{passive:false});
+canvas.addEventListener("touchmove",e=>{e.preventDefault();const t=e.touches[0];pointerX=t.clientX;pointerY=t.clientY},{passive:false});
+canvas.addEventListener("touchend",e=>{e.preventDefault();pointerActive=false},{passive:false});
+canvas.addEventListener("touchcancel",()=>pointerActive=false);
 
-    overdrive: {
-        stacks: 0,
-        time: 0,
-        maxStacks: 3
-    },
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const touching=(a,b)=>{const r=a.radius+b.radius,dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy<r*r};
+const onScreen=e=>e.x+e.radius>0&&e.x-e.radius<width&&e.y+e.radius>0&&e.y-e.radius<height;
+const randomPos=(p=80)=>({x:p+Math.random()*Math.max(1,width-p*2),y:p+Math.random()*Math.max(1,height-p*2)});
 
-    magnet: {
-        stacks: 0,
-        time: 0,
-        maxStacks: 2
-    },
-
-    berserk: {
-        stacks: 0,
-        time: 0,
-        maxStacks: 3
-    }
-};
-
-
-// ======================================================
-// GAME STATE
-// ======================================================
-
-let gameRunning = true;
-
-let score = 0;
-
-let lastTime = 0;
-let lastShot = 0;
-
-let enemySpawnTimer = 0;
-let weaponSpawnTimer = 0;
-let powerupSpawnTimer = 0;
-
-let orbitAngle = 0;
-
-let enemies = [];
-let bullets = [];
-
-let weaponPickups = [];
-let powerups = [];
-
-let explosions = [];
-let lightningEffects = [];
-let particles = [];
-
-let weaponBag = [];
-
-
-// ======================================================
-// INPUT
-// ======================================================
-
-let pointerActive = false;
-
-let pointerX = 0;
-let pointerY = 0;
-
-const keys = {};
-
-
-// ======================================================
-// CANVAS
-// ======================================================
-
-function resizeCanvas() {
-    pixelRatio = Math.min(
-        window.devicePixelRatio || 1,
-        2
-    );
-
-    width = window.innerWidth;
-    height = window.innerHeight;
-
-    canvas.width =
-        width * pixelRatio;
-
-    canvas.height =
-        height * pixelRatio;
-
-    canvas.style.width =
-        width + "px";
-
-    canvas.style.height =
-        height + "px";
-
-    ctx.setTransform(
-        pixelRatio,
-        0,
-        0,
-        pixelRatio,
-        0,
-        0
-    );
-
-    if (
-        !player.x ||
-        !player.y
-    ) {
-        player.x =
-            width / 2;
-
-        player.y =
-            height / 2;
-    }
+function refillWeaponBag(){
+  weaponBag=["plasma","shotgun","railgun","void","arc","starfire","frost","solar","nova","singularity"];
+  for(let i=weaponBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[weaponBag[i],weaponBag[j]]=[weaponBag[j],weaponBag[i]]}
 }
 
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
+function spawnEnemy(){
+  const side=Math.floor(Math.random()*4),m=50;
+  let x,y;
+  if(side===0){x=Math.random()*width;y=-m}
+  else if(side===1){x=width+m;y=Math.random()*height}
+  else if(side===2){x=Math.random()*width;y=height+m}
+  else{x=-m;y=Math.random()*height}
 
+  const difficulty=1+score/650,radius=19+Math.random()*4,maxSpeed=70+Math.random()*28+difficulty*3;
+  const dx=player.x-x,dy=player.y-y,d=Math.hypot(dx,dy)||1,startSpeed=maxSpeed*.7;
 
-// ======================================================
-// WEAPON BAG
-// ======================================================
-
-function refillWeaponBag() {
-    weaponBag = [
-        "plasma",
-        "shotgun",
-        "railgun",
-        "void",
-        "arc",
-        "starfire",
-        "frost",
-        "solar",
-        "nova",
-        "singularity"
-    ];
-
-    for (
-        let i =
-            weaponBag.length - 1;
-
-        i > 0;
-
-        i--
-    ) {
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-        [
-            weaponBag[i],
-            weaponBag[j]
-        ] = [
-            weaponBag[j],
-            weaponBag[i]
-        ];
-    }
+  enemies.push({
+    x,y,radius,
+    vx:dx/d*startSpeed,vy:dy/d*startSpeed,
+    maxSpeed,baseMaxSpeed:maxSpeed,
+    steering:120+Math.random()*35,
+    health:70+difficulty*12,maxHealth:70+difficulty*12,
+    damage:17+difficulty*.45,
+    hitCooldown:0,slowTimer:0,dead:false,bladeHit:0
+  });
 }
 
-
-// ======================================================
-// DESKTOP INPUT
-// ======================================================
-
-canvas.addEventListener(
-    "mousedown",
-    event => {
-        pointerActive = true;
-
-        pointerX =
-            event.clientX;
-
-        pointerY =
-            event.clientY;
-    }
-);
-
-canvas.addEventListener(
-    "mousemove",
-    event => {
-        if (!pointerActive) {
-            return;
-        }
-
-        pointerX =
-            event.clientX;
-
-        pointerY =
-            event.clientY;
-    }
-);
-
-window.addEventListener(
-    "mouseup",
-    () => {
-        pointerActive = false;
-    }
-);
-
-
-// ======================================================
-// MOBILE INPUT
-// ======================================================
-
-canvas.addEventListener(
-    "touchstart",
-    event => {
-        event.preventDefault();
-
-        const touch =
-            event.touches[0];
-
-        pointerActive = true;
-
-        pointerX =
-            touch.clientX;
-
-        pointerY =
-            touch.clientY;
-    },
-
-    {
-        passive: false
-    }
-);
-
-canvas.addEventListener(
-    "touchmove",
-    event => {
-        event.preventDefault();
-
-        const touch =
-            event.touches[0];
-
-        pointerX =
-            touch.clientX;
-
-        pointerY =
-            touch.clientY;
-    },
-
-    {
-        passive: false
-    }
-);
-
-canvas.addEventListener(
-    "touchend",
-    event => {
-        event.preventDefault();
-
-        pointerActive = false;
-    },
-
-    {
-        passive: false
-    }
-);
-
-canvas.addEventListener(
-    "touchcancel",
-    () => {
-        pointerActive = false;
-    }
-);
-
-
-// ======================================================
-// KEYBOARD INPUT
-// ======================================================
-
-window.addEventListener(
-    "keydown",
-    event => {
-        keys[
-            event.key.toLowerCase()
-        ] = true;
-    }
-);
-
-window.addEventListener(
-    "keyup",
-    event => {
-        keys[
-            event.key.toLowerCase()
-        ] = false;
-    }
-);
-
-
-// ======================================================
-// UTILITIES
-// ======================================================
-
-function distance(a, b) {
-    return Math.hypot(
-        a.x - b.x,
-        a.y - b.y
-    );
+function spawnWeaponPickup(){
+  if(!weaponBag.length)refillWeaponBag();
+  const p=randomPos();
+  weaponPickups.push({x:p.x,y:p.y,radius:23,weaponKey:weaponBag.pop(),life:20000});
 }
 
-
-function circlesTouch(a, b) {
-    const r =
-        a.radius +
-        b.radius;
-
-    const dx =
-        a.x -
-        b.x;
-
-    const dy =
-        a.y -
-        b.y;
-
-    return (
-        dx * dx +
-        dy * dy <
-        r * r
-    );
+function spawnPowerup(){
+  const ks=Object.keys(POWERUPS),key=ks[Math.floor(Math.random()*ks.length)],p=randomPos();
+  powerups.push({x:p.x,y:p.y,radius:19,key,life:14000,pulse:0});
 }
 
-
-function randomMapPosition(
-    padding = 80
-) {
-    return {
-        x:
-            padding +
-            Math.random() *
-            Math.max(
-                1,
-                width -
-                padding * 2
-            ),
-
-        y:
-            padding +
-            Math.random() *
-            Math.max(
-                1,
-                height -
-                padding * 2
-            )
-    };
+function findNearestEnemy(source=player,excluded=new Set(),visibleOnly=true){
+  let best=null,bestD=Infinity;
+  for(const e of enemies){
+    if(e.dead||excluded.has(e))continue;
+    if(visibleOnly&&!onScreen(e))continue;
+    const d=dist(source,e);
+    if(d<bestD){bestD=d;best=e}
+  }
+  return best;
 }
 
+const weapon=()=>WEAPONS[player.weaponKey];
 
-// ======================================================
-// ENEMY SPAWNING
-// ======================================================
-
-function spawnEnemy() {
-    const side =
-        Math.floor(
-            Math.random() *
-            4
-        );
-
-    const margin = 50;
-
-    let x;
-    let y;
-
-    if (side === 0) {
-        x =
-            Math.random() *
-            width;
-
-        y = -margin;
-    }
-
-    else if (side === 1) {
-        x =
-            width +
-            margin;
-
-        y =
-            Math.random() *
-            height;
-    }
-
-    else if (side === 2) {
-        x =
-            Math.random() *
-            width;
-
-        y =
-            height +
-            margin;
-    }
-
-    else {
-        x = -margin;
-
-        y =
-            Math.random() *
-            height;
-    }
-
-
-    const difficulty =
-        1 +
-        score /
-        650;
-
-
-    // Smaller hippos
-    const radius =
-        19 +
-        Math.random() *
-        4;
-
-
-    const enemy = {
-        x,
-        y,
-
-        radius,
-
-        speed:
-            67 +
-            Math.random() *
-            32 +
-            difficulty *
-            3,
-
-        baseSpeed: 0,
-
-        health:
-            70 +
-            difficulty *
-            12,
-
-        maxHealth: 0,
-
-        damage:
-            17 +
-            difficulty *
-            0.45,
-
-        hitCooldown: 0,
-
-        slowTimer: 0,
-
-        dead: false,
-
-        bladeHit: 0
-    };
-
-
-    enemy.baseSpeed =
-        enemy.speed;
-
-    enemy.maxHealth =
-        enemy.health;
-
-
-    enemies.push(enemy);
+function damageMult(){
+  return (1+buffs.quad.stacks*1.25)*(1+buffs.berserk.stacks*.45);
 }
 
-
-// ======================================================
-// WEAPON PICKUPS
-// ======================================================
-
-function spawnWeaponPickup() {
-    if (
-        weaponBag.length ===
-        0
-    ) {
-        refillWeaponBag();
-    }
-
-
-    const pos =
-        randomMapPosition();
-
-
-    weaponPickups.push({
-        x: pos.x,
-        y: pos.y,
-
-        radius: 23,
-
-        weaponKey:
-            weaponBag.pop(),
-
-        life: 20000
-    });
+function fireRate(w){
+  return Math.max(35,w.fireRate*Math.pow(.8,buffs.haste.stacks)*Math.pow(.82,buffs.overdrive.stacks)*Math.pow(.9,buffs.berserk.stacks));
 }
 
+function damageEnemy(e,dmg,knockback=0,angle=0){
+  if(!e||e.dead)return;
+  e.health-=dmg*damageMult();
 
-// ======================================================
-// POWERUP SPAWNING
-// ======================================================
+  if(knockback){
+    e.vx+=Math.cos(angle)*knockback*2.5;
+    e.vy+=Math.sin(angle)*knockback*2.5;
+  }
 
-function spawnPowerup() {
-    const keysList =
-        Object.keys(
-            POWERUPS
-        );
+  createHitParticles(e.x,e.y);
 
-
-    const key =
-        keysList[
-            Math.floor(
-                Math.random() *
-                keysList.length
-            )
-        ];
-
-
-    const pos =
-        randomMapPosition();
-
-
-    powerups.push({
-        x: pos.x,
-        y: pos.y,
-
-        radius: 19,
-
-        key,
-
-        life: 14000,
-
-        pulse: 0
-    });
+  if(e.health<=0){
+    e.dead=true;
+    score+=10;
+    createDeathParticles(e.x,e.y);
+  }
 }
 
+function shoot(time){
+  const w=weapon();
+  if(w.type==="orbit")return;
 
-// ======================================================
-// TARGETING
-// ======================================================
+  const target=findNearestEnemy(player,new Set(),true);
+  if(!target)return;
+  if(time-lastShot<fireRate(w))return;
 
-function findNearestEnemy(
-    source = player,
-    excluded = new Set()
-) {
-    let nearest = null;
+  lastShot=time;
+  const angle=Math.atan2(target.y-player.y,target.x-player.x);
 
-    let nearestDistance =
-        Infinity;
+  if(w.type==="shotgun"){
+    for(let i=0;i<w.pellets;i++)createBullet(angle+(Math.random()-.5)*w.spread,w);
+    return;
+  }
 
+  if(w.type==="arc"){
+    fireArc(target,w);
+    return;
+  }
 
-    for (
-        const enemy
-        of enemies
-    ) {
-        if (
-            enemy.dead ||
-            excluded.has(enemy)
-        ) {
-            continue;
-        }
-
-
-        const d =
-            distance(
-                source,
-                enemy
-            );
-
-
-        if (
-            d <
-            nearestDistance
-        ) {
-            nearestDistance = d;
-
-            nearest = enemy;
-        }
+  if(w.type==="nova"){
+    createBullet(angle,w);
+    const n=w.sideShots+buffs.overdrive.stacks;
+    for(let i=1;i<=n;i++){
+      createBullet(angle-.18*i,w);
+      createBullet(angle+.18*i,w);
     }
+    return;
+  }
 
+  createBullet(angle,w);
 
-    return nearest;
+  for(let i=1;i<=buffs.overdrive.stacks;i++){
+    createBullet(angle-.1*i,w);
+    createBullet(angle+.1*i,w);
+  }
 }
 
-
-// ======================================================
-// WEAPON HELPERS
-// ======================================================
-
-function getCurrentWeapon() {
-    return WEAPONS[
-        player.weaponKey
-    ];
-}
-
-
-function getDamageMultiplier() {
-    let multiplier = 1;
-
-
-    // Damage stacks
-    multiplier *=
-        1 +
-        buffs.quad.stacks *
-        1.25;
-
-
-    // Berserk damage stacks
-    multiplier *=
-        1 +
-        buffs.berserk.stacks *
-        0.45;
-
-
-    return multiplier;
-}
-
-
-function getFireRate(weapon) {
-    let rate =
-        weapon.fireRate;
-
-
-    // Haste stacks
-    rate *=
-        Math.pow(
-            0.80,
-            buffs.haste.stacks
-        );
-
-
-    // Overdrive stacks
-    rate *=
-        Math.pow(
-            0.82,
-            buffs.overdrive.stacks
-        );
-
-
-    // Berserk stacks
-    rate *=
-        Math.pow(
-            0.90,
-            buffs.berserk.stacks
-        );
-
-
-    return Math.max(
-        35,
-        rate
-    );
-}
-
-
-// ======================================================
-// DAMAGE
-// ======================================================
-
-function damageEnemy(
-    enemy,
-    damage,
-    knockback = 0,
-    angle = 0
-) {
-    if (
-        !enemy ||
-        enemy.dead
-    ) {
-        return;
-    }
-
-
-    enemy.health -=
-        damage *
-        getDamageMultiplier();
-
-
-    if (
-        knockback >
-        0
-    ) {
-        enemy.x +=
-            Math.cos(angle) *
-            knockback;
-
-        enemy.y +=
-            Math.sin(angle) *
-            knockback;
-    }
-
-
-    createHitParticles(
-        enemy.x,
-        enemy.y
-    );
-
-
-    if (
-        enemy.health <= 0
-    ) {
-        enemy.dead = true;
-
-        score += 10;
-
-
-        createDeathParticles(
-            enemy.x,
-            enemy.y
-        );
-    }
-}
-
-
-// ======================================================
-// SHOOTING
-// ======================================================
-
-function shoot(time) {
-    const weapon =
-        getCurrentWeapon();
-
-
-    if (
-        weapon.type ===
-        "orbit"
-    ) {
-        return;
-    }
-
-
-    if (
-        enemies.length ===
-        0
-    ) {
-        return;
-    }
-
-
-    if (
-        time -
-        lastShot <
-        getFireRate(weapon)
-    ) {
-        return;
-    }
-
-
-    const target =
-        findNearestEnemy();
-
-
-    if (!target) {
-        return;
-    }
-
-
-    lastShot = time;
-
-
-    const angle =
-        Math.atan2(
-            target.y -
-            player.y,
-
-            target.x -
-            player.x
-        );
-
-
-    // SHOTGUN
-
-    if (
-        weapon.type ===
-        "shotgun"
-    ) {
-        for (
-            let i = 0;
-            i <
-            weapon.pellets;
-            i++
-        ) {
-            const spread =
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                weapon.spread;
-
-
-            createBullet(
-                angle +
-                spread,
-
-                weapon
-            );
-        }
-
-        return;
-    }
-
-
-    // ARC BLASTER
-
-    if (
-        weapon.type ===
-        "arc"
-    ) {
-        fireArcWeapon(
-            target,
-            weapon
-        );
-
-        return;
-    }
-
-
-    // NOVA LANCE
-
-    if (
-        weapon.type ===
-        "nova"
-    ) {
-        createBullet(
-            angle,
-            weapon
-        );
-
-
-        const sideCount =
-            weapon.sideShots +
-            buffs.overdrive.stacks;
-
-
-        const spread =
-            0.18;
-
-
-        for (
-            let i = 1;
-            i <=
-            sideCount;
-            i++
-        ) {
-            createBullet(
-                angle -
-                spread *
-                i,
-
-                weapon
-            );
-
-
-            createBullet(
-                angle +
-                spread *
-                i,
-
-                weapon
-            );
-        }
-
-        return;
-    }
-
-
-    // NORMAL SHOT
-
-    createBullet(
-        angle,
-        weapon
-    );
-
-
-    // OVERDRIVE STACKING
-    // Each stack adds two extra shots
-
-    for (
-        let i = 1;
-        i <=
-        buffs.overdrive.stacks;
-        i++
-    ) {
-        const spread =
-            0.10 *
-            i;
-
-
-        createBullet(
-            angle -
-            spread,
-
-            weapon
-        );
-
-
-        createBullet(
-            angle +
-            spread,
-
-            weapon
-        );
-    }
-}
-
-
-// ======================================================
-// CREATE BULLET
-// ======================================================
-
-function createBullet(
+function createBullet(angle,w){
+  bullets.push({
+    x:player.x,y:player.y,
+    vx:Math.cos(angle)*w.bulletSpeed,
+    vy:Math.sin(angle)*w.bulletSpeed,
     angle,
-    weapon
-) {
-    bullets.push({
-        x: player.x,
-        y: player.y,
-
-        vx:
-            Math.cos(angle) *
-            weapon.bulletSpeed,
-
-        vy:
-            Math.sin(angle) *
-            weapon.bulletSpeed,
-
-        angle,
-
-        radius:
-            weapon.bulletSize,
-
-        damage:
-            weapon.damage,
-
-        color:
-            weapon.color,
-
-        type:
-            weapon.type,
-
-        pierce:
-            weapon.pierce ||
-            0,
-
-        hitEnemies:
-            new Set(),
-
-        explosionRadius:
-            weapon.explosionRadius ||
-            0,
-
-        explosionDamage:
-            weapon.explosionDamage ||
-            0,
-
-        homingStrength:
-            weapon.homingStrength ||
-            0,
-
-        slow:
-            weapon.slow ||
-            0,
-
-        slowTime:
-            weapon.slowTime ||
-            0,
-
-        knockback:
-            weapon.knockback ||
-            0,
-
-        pullRadius:
-            weapon.pullRadius ||
-            0,
-
-        pullStrength:
-            weapon.pullStrength ||
-            0,
-
-        life:
-            weapon.type ===
-            "singularity"
-                ? 1900
-                : 3000
-    });
+    radius:w.bulletSize,
+    damage:w.damage,
+    color:w.color,
+    type:w.type,
+    pierce:w.pierce||0,
+    hitEnemies:new Set(),
+    explosionRadius:w.explosionRadius||0,
+    explosionDamage:w.explosionDamage||0,
+    homingStrength:w.homingStrength||0,
+    slow:w.slow||0,
+    slowTime:w.slowTime||0,
+    knockback:w.knockback||0,
+    pullRadius:w.pullRadius||0,
+    pullStrength:w.pullStrength||0,
+    life:w.type==="singularity"?1900:3000
+  });
 }
 
+function fireArc(first,w){
+  let cur=first,dmg=w.damage,start={x:player.x,y:player.y};
+  const hit=new Set(),chains=w.chains+buffs.overdrive.stacks;
 
-// ======================================================
-// ARC BLASTER
-// ======================================================
+  for(let i=0;i<chains&&cur;i++){
+    if(!onScreen(cur))break;
 
-function fireArcWeapon(
-    firstEnemy,
-    weapon
-) {
-    let current =
-        firstEnemy;
+    lightningEffects.push({x1:start.x,y1:start.y,x2:cur.x,y2:cur.y,life:130,color:w.color});
+    damageEnemy(cur,dmg);
+    hit.add(cur);
+    start={x:cur.x,y:cur.y};
+    dmg=w.chainDamage;
 
-    let currentDamage =
-        weapon.damage;
-
-
-    const hit =
-        new Set();
-
-
-    let start = {
-        x: player.x,
-        y: player.y
-    };
-
-
-    const totalChains =
-        weapon.chains +
-        buffs.overdrive.stacks;
-
-
-    for (
-        let i = 0;
-        i <
-        totalChains;
-        i++
-    ) {
-        if (!current) {
-            break;
-        }
-
-
-        lightningEffects.push({
-            x1: start.x,
-            y1: start.y,
-
-            x2: current.x,
-            y2: current.y,
-
-            life: 130,
-
-            color:
-                weapon.color
-        });
-
-
-        damageEnemy(
-            current,
-            currentDamage
-        );
-
-
-        hit.add(current);
-
-
-        start = {
-            x: current.x,
-            y: current.y
-        };
-
-
-        currentDamage =
-            weapon.chainDamage;
-
-
-        let next = null;
-
-        let best =
-            Infinity;
-
-
-        for (
-            const enemy
-            of enemies
-        ) {
-            if (
-                hit.has(enemy) ||
-                enemy.dead
-            ) {
-                continue;
-            }
-
-
-            const d =
-                Math.hypot(
-                    enemy.x -
-                    start.x,
-
-                    enemy.y -
-                    start.y
-                );
-
-
-            if (
-                d <
-                weapon.chainRange &&
-                d <
-                best
-            ) {
-                best = d;
-
-                next = enemy;
-            }
-        }
-
-
-        current = next;
+    let next=null,best=Infinity;
+    for(const e of enemies){
+      if(e.dead||hit.has(e)||!onScreen(e))continue;
+      const d=Math.hypot(e.x-start.x,e.y-start.y);
+      if(d<w.chainRange&&d<best){best=d;next=e}
     }
+    cur=next;
+  }
 }
 
+function createExplosion(x,y,radius,damage,duration=300,color="#c45cff"){
+  explosions.push({x,y,radius:0,maxRadius:radius,life:duration,duration,color});
 
-// ======================================================
-// EXPLOSIONS
-// ======================================================
-
-function createExplosion(
-    x,
-    y,
-    radius,
-    damage,
-    duration = 300,
-    color = "#c45cff"
-) {
-    explosions.push({
-        x,
-        y,
-
-        radius: 0,
-
-        maxRadius:
-            radius,
-
-        life:
-            duration,
-
-        duration,
-
-        color
-    });
-
-
-    for (
-        const enemy
-        of enemies
-    ) {
-        if (
-            enemy.dead
-        ) {
-            continue;
-        }
-
-
-        const d =
-            Math.hypot(
-                enemy.x - x,
-                enemy.y - y
-            );
-
-
-        if (
-            d <
-            radius
-        ) {
-            const falloff =
-                1 -
-                d /
-                radius;
-
-
-            damageEnemy(
-                enemy,
-
-                damage *
-                (
-                    0.4 +
-                    falloff *
-                    0.6
-                )
-            );
-        }
-    }
+  for(const e of enemies){
+    if(e.dead)continue;
+    const d=Math.hypot(e.x-x,e.y-y);
+    if(d<radius)damageEnemy(e,damage*(.4+(1-d/radius)*.6));
+  }
 }
 
-
-// ======================================================
-// STACK POWERUPS
-// ======================================================
-
-function addTimedStack(
-    key,
-    durationPerPickup
-) {
-    const buff =
-        buffs[key];
-
-
-    buff.stacks =
-        Math.min(
-            buff.maxStacks,
-            buff.stacks + 1
-        );
-
-
-    // Adds time instead of resetting it
-    buff.time +=
-        durationPerPickup;
-
-
-    // Max 30 seconds stored
-    buff.time =
-        Math.min(
-            buff.time,
-            30000
-        );
+function addStack(key,duration){
+  const b=buffs[key];
+  b.stacks=Math.min(b.maxStacks,b.stacks+1);
+  b.time=Math.min(30000,b.time+duration);
 }
 
-
-// ======================================================
-// ACTIVATE POWERUP
-// ======================================================
-
-function activatePowerup(key) {
-    switch (key) {
-        case "heal":
-
-            player.health =
-                Math.min(
-                    player.maxHealth,
-
-                    player.health +
-                    80
-                );
-
-            break;
-
-
-        case "shield":
-
-            player.shield =
-                Math.min(
-                    250,
-
-                    player.shield +
-                    85
-                );
-
-            break;
-
-
-        case "quad":
-
-            addTimedStack(
-                "quad",
-                7000
-            );
-
-            break;
-
-
-        case "haste":
-
-            addTimedStack(
-                "haste",
-                8000
-            );
-
-            break;
-
-
-        case "overdrive":
-
-            addTimedStack(
-                "overdrive",
-                6500
-            );
-
-            break;
-
-
-        case "magnet":
-
-            addTimedStack(
-                "magnet",
-                10000
-            );
-
-            break;
-
-
-        case "berserk":
-
-            addTimedStack(
-                "berserk",
-                7500
-            );
-
-            break;
-
-
-        case "nuke":
-
-            createExplosion(
-                player.x,
-                player.y,
-
-                Math.max(
-                    width,
-                    height
-                ) *
-                1.45,
-
-                999999,
-
-                550,
-
-                "#ffffff"
-            );
-
-            break;
-    }
+function activatePowerup(key){
+  if(key==="heal")player.health=Math.min(player.maxHealth,player.health+80);
+  else if(key==="shield")player.shield=Math.min(250,player.shield+85);
+  else if(key==="quad")addStack("quad",7000);
+  else if(key==="haste")addStack("haste",8000);
+  else if(key==="overdrive")addStack("overdrive",6500);
+  else if(key==="magnet")addStack("magnet",10000);
+  else if(key==="berserk")addStack("berserk",7500);
+  else if(key==="nuke")createExplosion(player.x,player.y,Math.max(width,height)*1.45,999999,550,"#fff");
 }
 
+function updatePlayer(dt){
+  let dx=0,dy=0;
 
-// ======================================================
-// PLAYER UPDATE
-// ======================================================
+  if(keys.w||keys.arrowup)dy--;
+  if(keys.s||keys.arrowdown)dy++;
+  if(keys.a||keys.arrowleft)dx--;
+  if(keys.d||keys.arrowright)dx++;
 
-function updatePlayer(delta) {
-    let dx = 0;
-    let dy = 0;
+  const speed=player.speed*(1+buffs.berserk.stacks*.12);
 
-
-    if (
-        keys["w"] ||
-        keys["arrowup"]
-    ) {
-        dy -= 1;
+  if(dx||dy){
+    const d=Math.hypot(dx,dy);
+    player.x+=dx/d*speed*dt;
+    player.y+=dy/d*speed*dt;
+  }else if(pointerActive){
+    dx=pointerX-player.x;dy=pointerY-player.y;
+    const d=Math.hypot(dx,dy);
+    if(d>5){
+      const m=Math.min(speed*dt,d);
+      player.x+=dx/d*m;
+      player.y+=dy/d*m;
     }
+  }
 
-
-    if (
-        keys["s"] ||
-        keys["arrowdown"]
-    ) {
-        dy += 1;
-    }
-
-
-    if (
-        keys["a"] ||
-        keys["arrowleft"]
-    ) {
-        dx -= 1;
-    }
-
-
-    if (
-        keys["d"] ||
-        keys["arrowright"]
-    ) {
-        dx += 1;
-    }
-
-
-    let speed =
-        player.speed;
-
-
-    // Berserk also stacks movement speed
-
-    speed *=
-        1 +
-        buffs.berserk.stacks *
-        0.12;
-
-
-    // KEYBOARD
-
-    if (
-        dx !== 0 ||
-        dy !== 0
-    ) {
-        const length =
-            Math.hypot(
-                dx,
-                dy
-            );
-
-
-        dx /= length;
-        dy /= length;
-
-
-        player.x +=
-            dx *
-            speed *
-            delta;
-
-
-        player.y +=
-            dy *
-            speed *
-            delta;
-    }
-
-
-    // TOUCH / MOUSE
-
-    else if (
-        pointerActive
-    ) {
-        dx =
-            pointerX -
-            player.x;
-
-        dy =
-            pointerY -
-            player.y;
-
-
-        const d =
-            Math.hypot(
-                dx,
-                dy
-            );
-
-
-        if (
-            d > 5
-        ) {
-            const amount =
-                Math.min(
-                    speed *
-                    delta,
-
-                    d
-                );
-
-
-            player.x +=
-                dx /
-                d *
-                amount;
-
-
-            player.y +=
-                dy /
-                d *
-                amount;
-        }
-    }
-
-
-    player.x =
-        Math.max(
-            player.radius,
-
-            Math.min(
-                width -
-                player.radius,
-
-                player.x
-            )
-        );
-
-
-    player.y =
-        Math.max(
-            player.radius,
-
-            Math.min(
-                height -
-                player.radius,
-
-                player.y
-            )
-        );
+  player.x=Math.max(player.radius,Math.min(width-player.radius,player.x));
+  player.y=Math.max(player.radius,Math.min(height-player.radius,player.y));
 }
 
+function updateEnemies(dt){
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+    if(e.dead){enemies.splice(i,1);continue}
 
-// ======================================================
-// ENEMY UPDATE
-// ======================================================
+    let maxSpeed=e.baseMaxSpeed;
 
-function updateEnemies(delta) {
-    for (
-        let i =
-            enemies.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const enemy =
-            enemies[i];
-
-
-        if (
-            enemy.dead
-        ) {
-            enemies.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        if (
-            enemy.slowTimer >
-            0
-        ) {
-            enemy.slowTimer -=
-                delta *
-                1000;
-        }
-
-        else {
-            enemy.speed =
-                enemy.baseSpeed;
-        }
-
-
-        const dx =
-            player.x -
-            enemy.x;
-
-        const dy =
-            player.y -
-            enemy.y;
-
-
-        const d =
-            Math.hypot(
-                dx,
-                dy
-            );
-
-
-        if (
-            d > 0
-        ) {
-            enemy.x +=
-                dx /
-                d *
-                enemy.speed *
-                delta;
-
-
-            enemy.y +=
-                dy /
-                d *
-                enemy.speed *
-                delta;
-        }
-
-
-        enemy.hitCooldown -=
-            delta *
-            1000;
-
-
-        if (
-            circlesTouch(
-                player,
-                enemy
-            ) &&
-            enemy.hitCooldown <=
-            0
-        ) {
-            let damage =
-                enemy.damage;
-
-
-            if (
-                player.shield >
-                0
-            ) {
-                const absorbed =
-                    Math.min(
-                        player.shield,
-                        damage
-                    );
-
-
-                player.shield -=
-                    absorbed;
-
-
-                damage -=
-                    absorbed;
-            }
-
-
-            player.health -=
-                damage;
-
-
-            enemy.hitCooldown =
-                650;
-
-
-            if (
-                player.health <=
-                0
-            ) {
-                player.health = 0;
-
-                endGame();
-            }
-        }
+    if(e.slowTimer>0){
+      e.slowTimer-=dt*1000;
+      maxSpeed*=.5;
     }
+
+    const dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||1;
+    const desiredVX=dx/d*maxSpeed,desiredVY=dy/d*maxSpeed;
+
+    let sx=desiredVX-e.vx,sy=desiredVY-e.vy;
+    const sl=Math.hypot(sx,sy),maxSteer=e.steering*dt;
+
+    if(sl>maxSteer&&sl>0){
+      sx=sx/sl*maxSteer;
+      sy=sy/sl*maxSteer;
+    }
+
+    e.vx+=sx;
+    e.vy+=sy;
+
+    const v=Math.hypot(e.vx,e.vy);
+    if(v>maxSpeed){
+      e.vx=e.vx/v*maxSpeed;
+      e.vy=e.vy/v*maxSpeed;
+    }
+
+    e.x+=e.vx*dt;
+    e.y+=e.vy*dt;
+    e.hitCooldown-=dt*1000;
+
+    if(touching(player,e)&&e.hitCooldown<=0){
+      let damage=e.damage;
+
+      if(player.shield>0){
+        const absorbed=Math.min(player.shield,damage);
+        player.shield-=absorbed;
+        damage-=absorbed;
+      }
+
+      player.health-=damage;
+      e.hitCooldown=650;
+
+      e.vx-=dx/d*90;
+      e.vy-=dy/d*90;
+
+      if(player.health<=0){
+        player.health=0;
+        endGame();
+      }
+    }
+  }
 }
 
-
-// ======================================================
-// BULLET UPDATE
-// ======================================================
-
-function updateBullets(delta) {
-    for (
-        let i =
-            bullets.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const bullet =
-            bullets[i];
-
-
-        bullet.life -=
-            delta *
-            1000;
-
-
-        // HOMING
-
-        if (
-            bullet.type ===
-            "homing"
-        ) {
-            const target =
-                findNearestEnemy(
-                    bullet
-                );
-
-
-            if (target) {
-                const targetAngle =
-                    Math.atan2(
-                        target.y -
-                        bullet.y,
-
-                        target.x -
-                        bullet.x
-                    );
-
-
-                let difference =
-                    targetAngle -
-                    bullet.angle;
-
-
-                difference =
-                    Math.atan2(
-                        Math.sin(
-                            difference
-                        ),
-
-                        Math.cos(
-                            difference
-                        )
-                    );
-
-
-                bullet.angle +=
-                    difference *
-                    bullet.homingStrength *
-                    delta;
-
-
-                const speed =
-                    Math.hypot(
-                        bullet.vx,
-                        bullet.vy
-                    );
-
-
-                bullet.vx =
-                    Math.cos(
-                        bullet.angle
-                    ) *
-                    speed;
-
-
-                bullet.vy =
-                    Math.sin(
-                        bullet.angle
-                    ) *
-                    speed;
-            }
-        }
-
-
-        // SINGULARITY PULL
-
-        if (
-            bullet.type ===
-            "singularity"
-        ) {
-            for (
-                const enemy
-                of enemies
-            ) {
-                if (
-                    enemy.dead
-                ) {
-                    continue;
-                }
-
-
-                const dx =
-                    bullet.x -
-                    enemy.x;
-
-                const dy =
-                    bullet.y -
-                    enemy.y;
-
-
-                const d =
-                    Math.hypot(
-                        dx,
-                        dy
-                    );
-
-
-                if (
-                    d > 1 &&
-                    d <
-                    bullet.pullRadius
-                ) {
-                    const pull =
-                        bullet.pullStrength *
-                        (
-                            1 -
-                            d /
-                            bullet.pullRadius
-                        ) *
-                        delta;
-
-
-                    enemy.x +=
-                        dx /
-                        d *
-                        pull;
-
-
-                    enemy.y +=
-                        dy /
-                        d *
-                        pull;
-                }
-            }
-        }
-
-
-        bullet.x +=
-            bullet.vx *
-            delta;
-
-
-        bullet.y +=
-            bullet.vy *
-            delta;
-
-
-        const expired =
-            bullet.life <= 0 ||
-
-            bullet.x < -180 ||
-
-            bullet.x >
-            width + 180 ||
-
-            bullet.y < -180 ||
-
-            bullet.y >
-            height + 180;
-
-
-        if (expired) {
-            if (
-                bullet.type ===
-                "singularity"
-            ) {
-                createExplosion(
-                    bullet.x,
-                    bullet.y,
-
-                    bullet.explosionRadius,
-                    bullet.explosionDamage,
-
-                    350,
-
-                    bullet.color
-                );
-            }
-
-
-            bullets.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        let removeBullet =
-            false;
-
-
-        for (
-            const enemy
-            of enemies
-        ) {
-            if (
-                enemy.dead ||
-                bullet.hitEnemies.has(
-                    enemy
-                )
-            ) {
-                continue;
-            }
-
-
-            if (
-                circlesTouch(
-                    bullet,
-                    enemy
-                )
-            ) {
-                bullet.hitEnemies.add(
-                    enemy
-                );
-
-
-                damageEnemy(
-                    enemy,
-
-                    bullet.damage,
-
-                    bullet.knockback,
-
-                    bullet.angle
-                );
-
-
-                // FROST
-
-                if (
-                    bullet.type ===
-                    "frost"
-                ) {
-                    enemy.speed =
-                        enemy.baseSpeed *
-                        bullet.slow;
-
-
-                    enemy.slowTimer =
-                        bullet.slowTime;
-                }
-
-
-                // VOID EXPLOSION
-
-                if (
-                    bullet.type ===
-                    "explosive"
-                ) {
-                    createExplosion(
-                        bullet.x,
-                        bullet.y,
-
-                        bullet.explosionRadius,
-                        bullet.explosionDamage,
-
-                        300,
-
-                        bullet.color
-                    );
-
-
-                    removeBullet =
-                        true;
-
-                    break;
-                }
-
-
-                // SINGULARITY EXPLOSION
-
-                if (
-                    bullet.type ===
-                    "singularity"
-                ) {
-                    createExplosion(
-                        bullet.x,
-                        bullet.y,
-
-                        bullet.explosionRadius,
-                        bullet.explosionDamage,
-
-                        350,
-
-                        bullet.color
-                    );
-
-
-                    removeBullet =
-                        true;
-
-                    break;
-                }
-
-
-                // RAILGUN
-
-                if (
-                    bullet.pierce >
-                    0
-                ) {
-                    bullet.pierce--;
-
-                    continue;
-                }
-
-
-                removeBullet =
-                    true;
-
-                break;
-            }
-        }
-
-
-        if (
-            removeBullet
-        ) {
-            bullets.splice(
-                i,
-                1
-            );
-        }
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.life-=dt*1000;
+
+    if(b.type==="homing"){
+      const target=findNearestEnemy(b,new Set(),true);
+      if(target){
+        const targetAngle=Math.atan2(target.y-b.y,target.x-b.x);
+        let diff=Math.atan2(Math.sin(targetAngle-b.angle),Math.cos(targetAngle-b.angle));
+        b.angle+=diff*b.homingStrength*dt;
+
+        const s=Math.hypot(b.vx,b.vy);
+        b.vx=Math.cos(b.angle)*s;
+        b.vy=Math.sin(b.angle)*s;
+      }
     }
+
+    if(b.type==="singularity"){
+      for(const e of enemies){
+        if(e.dead)continue;
+
+        const dx=b.x-e.x,dy=b.y-e.y,d=Math.hypot(dx,dy);
+
+        if(d>1&&d<b.pullRadius){
+          const force=b.pullStrength*(1-d/b.pullRadius)*dt;
+          e.vx+=dx/d*force;
+          e.vy+=dy/d*force;
+        }
+      }
+    }
+
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
+
+    const expired=b.life<=0||b.x<-180||b.x>width+180||b.y<-180||b.y>height+180;
+
+    if(expired){
+      if(b.type==="singularity")createExplosion(b.x,b.y,b.explosionRadius,b.explosionDamage,350,b.color);
+      bullets.splice(i,1);
+      continue;
+    }
+
+    let remove=false;
+
+    for(const e of enemies){
+      if(e.dead||b.hitEnemies.has(e))continue;
+
+      if(touching(b,e)){
+        b.hitEnemies.add(e);
+        damageEnemy(e,b.damage,b.knockback,b.angle);
+
+        if(b.type==="frost")e.slowTimer=b.slowTime;
+
+        if(b.type==="explosive"){
+          createExplosion(b.x,b.y,b.explosionRadius,b.explosionDamage,300,b.color);
+          remove=true;
+          break;
+        }
+
+        if(b.type==="singularity"){
+          createExplosion(b.x,b.y,b.explosionRadius,b.explosionDamage,350,b.color);
+          remove=true;
+          break;
+        }
+
+        if(b.pierce>0){
+          b.pierce--;
+          continue;
+        }
+
+        remove=true;
+        break;
+      }
+    }
+
+    if(remove)bullets.splice(i,1);
+  }
 }
 
+function updateSolarBlades(dt){
+  const w=weapon();
+  if(w.type!=="orbit")return;
 
-// ======================================================
-// SOLAR BLADES
-// ======================================================
+  orbitAngle+=dt*3.8;
+  const count=w.blades+buffs.overdrive.stacks;
 
-function updateSolarBlades(delta) {
-    const weapon =
-        getCurrentWeapon();
+  for(let i=0;i<count;i++){
+    const a=orbitAngle+Math.PI*2/count*i;
+    const blade={x:player.x+Math.cos(a)*72,y:player.y+Math.sin(a)*72,radius:12};
 
+    for(const e of enemies){
+      if(e.dead)continue;
 
-    if (
-        weapon.type !==
-        "orbit"
-    ) {
-        return;
+      if(touching(blade,e)&&performance.now()-e.bladeHit>230){
+        damageEnemy(e,w.damage);
+        e.bladeHit=performance.now();
+      }
     }
-
-
-    orbitAngle +=
-        delta *
-        3.8;
-
-
-    // Overdrive adds blades
-
-    const bladeCount =
-        weapon.blades +
-        buffs.overdrive.stacks;
-
-
-    for (
-        let i = 0;
-        i <
-        bladeCount;
-        i++
-    ) {
-        const angle =
-            orbitAngle +
-            (
-                Math.PI *
-                2 /
-                bladeCount
-            ) *
-            i;
-
-
-        const blade = {
-            x:
-                player.x +
-                Math.cos(
-                    angle
-                ) *
-                72,
-
-            y:
-                player.y +
-                Math.sin(
-                    angle
-                ) *
-                72,
-
-            radius: 12
-        };
-
-
-        for (
-            const enemy
-            of enemies
-        ) {
-            if (
-                enemy.dead
-            ) {
-                continue;
-            }
-
-
-            if (
-                circlesTouch(
-                    blade,
-                    enemy
-                ) &&
-
-                performance.now() -
-                enemy.bladeHit >
-                230
-            ) {
-                damageEnemy(
-                    enemy,
-                    weapon.damage
-                );
-
-
-                enemy.bladeHit =
-                    performance.now();
-            }
-        }
-    }
+  }
 }
 
+function pullPickup(p,dt){
+  const dx=player.x-p.x,dy=player.y-p.y,d=Math.hypot(dx,dy);
+  const range=300+buffs.magnet.stacks*90,speed=350+buffs.magnet.stacks*80;
 
-// ======================================================
-// MAGNET
-// ======================================================
-
-function pullPickupToPlayer(
-    pickup,
-    delta
-) {
-    const dx =
-        player.x -
-        pickup.x;
-
-    const dy =
-        player.y -
-        pickup.y;
-
-
-    const d =
-        Math.hypot(
-            dx,
-            dy
-        );
-
-
-    const range =
-        300 +
-        buffs.magnet.stacks *
-        90;
-
-
-    const speed =
-        350 +
-        buffs.magnet.stacks *
-        80;
-
-
-    if (
-        d <
-        range &&
-        d > 1
-    ) {
-        pickup.x +=
-            dx /
-            d *
-            speed *
-            delta;
-
-
-        pickup.y +=
-            dy /
-            d *
-            speed *
-            delta;
-    }
+  if(d<range&&d>1){
+    p.x+=dx/d*speed*dt;
+    p.y+=dy/d*speed*dt;
+  }
 }
 
+function updatePickups(dt){
+  for(let i=weaponPickups.length-1;i>=0;i--){
+    const p=weaponPickups[i];
+    p.life-=dt*1000;
 
-// ======================================================
-// PICKUPS UPDATE
-// ======================================================
+    if(buffs.magnet.stacks)pullPickup(p,dt);
+    if(p.life<=0){weaponPickups.splice(i,1);continue}
 
-function updatePickups(delta) {
-    // WEAPONS
-
-    for (
-        let i =
-            weaponPickups.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const pickup =
-            weaponPickups[i];
-
-
-        pickup.life -=
-            delta *
-            1000;
-
-
-        if (
-            buffs.magnet.stacks >
-            0
-        ) {
-            pullPickupToPlayer(
-                pickup,
-                delta
-            );
-        }
-
-
-        if (
-            pickup.life <= 0
-        ) {
-            weaponPickups.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        if (
-            circlesTouch(
-                player,
-                pickup
-            )
-        ) {
-            player.weaponKey =
-                pickup.weaponKey;
-
-
-            weaponPickups.splice(
-                i,
-                1
-            );
-        }
+    if(touching(player,p)){
+      player.weaponKey=p.weaponKey;
+      weaponPickups.splice(i,1);
     }
+  }
 
+  for(let i=powerups.length-1;i>=0;i--){
+    const p=powerups[i];
+    p.life-=dt*1000;
+    p.pulse+=dt*5;
 
-    // POWERUPS
+    if(buffs.magnet.stacks)pullPickup(p,dt);
+    if(p.life<=0){powerups.splice(i,1);continue}
 
-    for (
-        let i =
-            powerups.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const pickup =
-            powerups[i];
-
-
-        pickup.life -=
-            delta *
-            1000;
-
-
-        pickup.pulse +=
-            delta *
-            5;
-
-
-        if (
-            buffs.magnet.stacks >
-            0
-        ) {
-            pullPickupToPlayer(
-                pickup,
-                delta
-            );
-        }
-
-
-        if (
-            pickup.life <= 0
-        ) {
-            powerups.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        if (
-            circlesTouch(
-                player,
-                pickup
-            )
-        ) {
-            activatePowerup(
-                pickup.key
-            );
-
-
-            powerups.splice(
-                i,
-                1
-            );
-        }
+    if(touching(player,p)){
+      activatePowerup(p.key);
+      powerups.splice(i,1);
     }
+  }
 }
 
+function updateBuffs(dt){
+  const ms=dt*1000;
 
-// ======================================================
-// BUFF TIMERS
-// ======================================================
+  for(const k in buffs){
+    const b=buffs[k];
+    if(!b.time)continue;
 
-function updateBuffs(delta) {
-    const elapsed =
-        delta *
-        1000;
+    b.time-=ms;
 
-
-    for (
-        const key
-        in buffs
-    ) {
-        const buff =
-            buffs[key];
-
-
-        if (
-            buff.time <= 0
-        ) {
-            continue;
-        }
-
-
-        buff.time -=
-            elapsed;
-
-
-        if (
-            buff.time <= 0
-        ) {
-            buff.time = 0;
-
-            buff.stacks = 0;
-        }
+    if(b.time<=0){
+      b.time=0;
+      b.stacks=0;
     }
+  }
 }
 
-
-// ======================================================
-// PARTICLES
-// ======================================================
-
-function createHitParticles(
-    x,
-    y
-) {
-    for (
-        let i = 0;
-        i < 3;
-        i++
-    ) {
-        particles.push({
-            x,
-            y,
-
-            vx:
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                180,
-
-            vy:
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                180,
-
-            radius:
-                2 +
-                Math.random() *
-                3,
-
-            life: 250
-        });
-    }
+function createHitParticles(x,y){
+  for(let i=0;i<3;i++)particles.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,radius:2+Math.random()*3,life:250});
 }
 
-
-function createDeathParticles(
-    x,
-    y
-) {
-    for (
-        let i = 0;
-        i < 10;
-        i++
-    ) {
-        particles.push({
-            x,
-            y,
-
-            vx:
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                300,
-
-            vy:
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                300,
-
-            radius:
-                3 +
-                Math.random() *
-                5,
-
-            life: 500
-        });
-    }
+function createDeathParticles(x,y){
+  for(let i=0;i<10;i++)particles.push({x,y,vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,radius:3+Math.random()*5,life:500});
 }
 
+function updateEffects(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*1000;
+    if(p.life<=0)particles.splice(i,1);
+  }
 
-// ======================================================
-// EFFECT UPDATE
-// ======================================================
+  for(let i=explosions.length-1;i>=0;i--){
+    const e=explosions[i];
+    e.life-=dt*1000;
+    e.radius=Math.max(0,e.maxRadius*Math.max(0,Math.min(1,1-e.life/e.duration)));
+    if(e.life<=0)explosions.splice(i,1);
+  }
 
-function updateEffects(delta) {
-    // PARTICLES
-
-    for (
-        let i =
-            particles.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const p =
-            particles[i];
-
-
-        p.x +=
-            p.vx *
-            delta;
-
-        p.y +=
-            p.vy *
-            delta;
-
-
-        p.life -=
-            delta *
-            1000;
-
-
-        if (
-            p.life <= 0
-        ) {
-            particles.splice(
-                i,
-                1
-            );
-        }
-    }
-
-
-    // EXPLOSIONS
-
-    for (
-        let i =
-            explosions.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-        const e =
-            explosions[i];
-
-
-        e.life -=
-            delta *
-            1000;
-
-
-        const progress =
-            Math.max(
-                0,
-
-                Math.min(
-                    1,
-
-                    1 -
-                    e.life /
-                    e.duration
-                )
-            );
-
-
-        // Prevents negative radius crash
-
-        e.radius =
-            Math.max(
-                0,
-
-                e.maxRadius *
-                progress
-            );
-
-
-        if (
-            e.life <= 0
-        ) {
-            explosions.splice(
-                i,
-                1
-            );
-        }
-    }
-
-
-    // LIGHTNING
-
-    for (
-        let i =
-            lightningEffects.length -
-            1;
-
-        i >= 0;
-
-        i--
-    ) {
-        lightningEffects[i]
-            .life -=
-            delta *
-            1000;
-
-
-        if (
-            lightningEffects[i]
-                .life <= 0
-        ) {
-            lightningEffects.splice(
-                i,
-                1
-            );
-        }
-    }
+  for(let i=lightningEffects.length-1;i>=0;i--){
+    lightningEffects[i].life-=dt*1000;
+    if(lightningEffects[i].life<=0)lightningEffects.splice(i,1);
+  }
 }
 
+function drawBackground(){
+  ctx.fillStyle="#111820";
+  ctx.fillRect(0,0,width,height);
 
-// ======================================================
-// DRAW BACKGROUND
-// ======================================================
+  ctx.strokeStyle="rgba(255,255,255,.035)";
+  ctx.lineWidth=1;
 
-function drawBackground() {
-    ctx.fillStyle =
-        "#111820";
+  for(let x=0;x<width;x+=50){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,height);
+    ctx.stroke();
+  }
 
-
-    ctx.fillRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    ctx.strokeStyle =
-        "rgba(255,255,255,0.035)";
-
-
-    ctx.lineWidth = 1;
-
-
-    const spacing = 50;
-
-
-    for (
-        let x = 0;
-        x < width;
-        x += spacing
-    ) {
-        ctx.beginPath();
-
-        ctx.moveTo(
-            x,
-            0
-        );
-
-        ctx.lineTo(
-            x,
-            height
-        );
-
-        ctx.stroke();
-    }
-
-
-    for (
-        let y = 0;
-        y < height;
-        y += spacing
-    ) {
-        ctx.beginPath();
-
-        ctx.moveTo(
-            0,
-            y
-        );
-
-        ctx.lineTo(
-            width,
-            y
-        );
-
-        ctx.stroke();
-    }
+  for(let y=0;y<height;y+=50){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(width,y);
+    ctx.stroke();
+  }
 }
 
+function drawPlayer(){
+  if(player.shield>0){
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,player.radius+8,0,Math.PI*2);
+    ctx.strokeStyle="#55cfff";
+    ctx.lineWidth=4;
+    ctx.stroke();
+  }
 
-// ======================================================
-// DRAW PLAYER
-// ======================================================
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.radius,0,Math.PI*2);
+  ctx.fillStyle=player.color;
+  ctx.fill();
+  ctx.strokeStyle="#fff";
+  ctx.lineWidth=3;
+  ctx.stroke();
+}
 
-function drawPlayer() {
-    if (
-        player.shield >
-        0
-    ) {
-        ctx.beginPath();
+function drawEnemies(){
+  for(const e of enemies){
+    const size=e.radius*2.65;
 
-        ctx.arc(
-            player.x,
-            player.y,
-
-            player.radius +
-            8,
-
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.strokeStyle =
-            "#55cfff";
-
-
-        ctx.lineWidth = 4;
-
-        ctx.stroke();
+    if(hippoImage.complete&&hippoImage.naturalWidth){
+      ctx.drawImage(hippoImage,e.x-size/2,e.y-size/2,size,size);
+    }else{
+      ctx.beginPath();
+      ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
+      ctx.fillStyle="#ff456c";
+      ctx.fill();
     }
 
+    if(e.health<e.maxHealth){
+      const w=32;
+      ctx.fillStyle="#250000";
+      ctx.fillRect(e.x-w/2,e.y-e.radius-8,w,4);
+      ctx.fillStyle="#ff4444";
+      ctx.fillRect(e.x-w/2,e.y-e.radius-8,w*Math.max(0,e.health/e.maxHealth),4);
+    }
+  }
+}
+
+function drawBullets(){
+  for(const b of bullets){
+    ctx.save();
+    ctx.shadowBlur=b.type==="singularity"?25:12;
+    ctx.shadowColor=b.color;
 
     ctx.beginPath();
-
-    ctx.arc(
-        player.x,
-        player.y,
-        player.radius,
-
-        0,
-        Math.PI *
-        2
-    );
-
-
-    ctx.fillStyle =
-        player.color;
-
+    ctx.arc(b.x,b.y,Math.max(0,b.radius),0,Math.PI*2);
+    ctx.fillStyle=b.color;
     ctx.fill();
 
+    if(b.type==="singularity"){
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.radius+8,0,Math.PI*2);
+      ctx.strokeStyle="rgba(255,255,255,.6)";
+      ctx.lineWidth=2;
+      ctx.stroke();
+    }
 
-    ctx.strokeStyle =
-        "#ffffff";
+    ctx.restore();
+  }
+}
 
-    ctx.lineWidth = 3;
+function drawSolarBlades(){
+  const w=weapon();
+  if(w.type!=="orbit")return;
 
+  const count=w.blades+buffs.overdrive.stacks;
+
+  for(let i=0;i<count;i++){
+    const a=orbitAngle+Math.PI*2/count*i;
+    const x=player.x+Math.cos(a)*72,y=player.y+Math.sin(a)*72;
+
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(a);
+    ctx.shadowBlur=15;
+    ctx.shadowColor=w.color;
+    ctx.fillStyle=w.color;
+    ctx.fillRect(-5,-18,10,36);
+    ctx.restore();
+  }
+}
+
+function drawWeaponPickups(){
+  for(const p of weaponPickups){
+    const w=WEAPONS[p.weaponKey];
+
+    ctx.save();
+    ctx.shadowBlur=18;
+    ctx.shadowColor=w.color;
+
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
+    ctx.fillStyle="#111";
+    ctx.fill();
+    ctx.strokeStyle=w.color;
+    ctx.lineWidth=4;
     ctx.stroke();
+
+    ctx.fillStyle="#fff";
+    ctx.font="bold 9px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+
+    const words=w.name.split(" ");
+    if(words.length>1){
+      ctx.fillText(words[0],p.x,p.y-5);
+      ctx.fillText(words.slice(1).join(" "),p.x,p.y+6);
+    }else ctx.fillText(w.name,p.x,p.y);
+
+    ctx.restore();
+  }
 }
 
+function drawPowerups(){
+  for(const p of powerups){
+    const data=POWERUPS[p.key],pulse=1+Math.sin(p.pulse)*.12;
 
-// ======================================================
-// DRAW HIPPOS
-// ======================================================
+    ctx.save();
+    ctx.shadowBlur=20;
+    ctx.shadowColor=data.color;
 
-function drawEnemies() {
-    for (
-        const enemy
-        of enemies
-    ) {
-        // Smaller image
-        const size =
-            enemy.radius *
-            2.65;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.radius*pulse,0,Math.PI*2);
+    ctx.fillStyle=data.color;
+    ctx.fill();
 
+    ctx.fillStyle="#111";
+    ctx.font="bold 8px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(data.name,p.x,p.y);
 
-        if (
-            hippoImage.complete &&
-            hippoImage.naturalWidth >
-            0
-        ) {
-            ctx.drawImage(
-                hippoImage,
-
-                enemy.x -
-                size /
-                2,
-
-                enemy.y -
-                size /
-                2,
-
-                size,
-                size
-            );
-        }
-
-        else {
-            ctx.beginPath();
-
-            ctx.arc(
-                enemy.x,
-                enemy.y,
-                enemy.radius,
-
-                0,
-                Math.PI *
-                2
-            );
-
-
-            ctx.fillStyle =
-                "#ff456c";
-
-            ctx.fill();
-        }
-
-
-        // HP BAR
-
-        if (
-            enemy.health <
-            enemy.maxHealth
-        ) {
-            const barWidth =
-                32;
-
-
-            ctx.fillStyle =
-                "#250000";
-
-
-            ctx.fillRect(
-                enemy.x -
-                barWidth /
-                2,
-
-                enemy.y -
-                enemy.radius -
-                8,
-
-                barWidth,
-                4
-            );
-
-
-            ctx.fillStyle =
-                "#ff4444";
-
-
-            ctx.fillRect(
-                enemy.x -
-                barWidth /
-                2,
-
-                enemy.y -
-                enemy.radius -
-                8,
-
-                barWidth *
-                Math.max(
-                    0,
-
-                    enemy.health /
-                    enemy.maxHealth
-                ),
-
-                4
-            );
-        }
-    }
+    ctx.restore();
+  }
 }
 
+function drawEffects(){
+  for(const p of particles){
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
+    ctx.fillStyle="#fff";
+    ctx.fill();
+  }
 
-// ======================================================
-// DRAW BULLETS
-// ======================================================
+  for(const e of explosions){
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,e.life/e.duration);
+    ctx.beginPath();
+    ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
+    ctx.strokeStyle=e.color;
+    ctx.lineWidth=10;
+    ctx.stroke();
+    ctx.restore();
+  }
 
-function drawBullets() {
-    for (
-        const bullet
-        of bullets
-    ) {
-        ctx.save();
+  for(const l of lightningEffects){
+    ctx.save();
+    ctx.shadowBlur=15;
+    ctx.shadowColor=l.color;
+    ctx.strokeStyle=l.color;
+    ctx.lineWidth=4;
 
+    ctx.beginPath();
+    ctx.moveTo(l.x1,l.y1);
 
-        ctx.shadowBlur =
-            bullet.type ===
-            "singularity"
-                ? 25
-                : 12;
-
-
-        ctx.shadowColor =
-            bullet.color;
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-            bullet.x,
-            bullet.y,
-
-            Math.max(
-                0,
-                bullet.radius
-            ),
-
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fillStyle =
-            bullet.color;
-
-        ctx.fill();
-
-
-        // Singularity outer ring
-
-        if (
-            bullet.type ===
-            "singularity"
-        ) {
-            ctx.beginPath();
-
-            ctx.arc(
-                bullet.x,
-                bullet.y,
-
-                Math.max(
-                    0,
-
-                    bullet.radius +
-                    8
-                ),
-
-                0,
-                Math.PI *
-                2
-            );
-
-
-            ctx.strokeStyle =
-                "rgba(255,255,255,0.6)";
-
-
-            ctx.lineWidth = 2;
-
-            ctx.stroke();
-        }
-
-
-        ctx.restore();
+    for(let i=1;i<5;i++){
+      const t=i/5;
+      ctx.lineTo(
+        l.x1+(l.x2-l.x1)*t+(Math.random()-.5)*15,
+        l.y1+(l.y2-l.y1)*t+(Math.random()-.5)*15
+      );
     }
+
+    ctx.lineTo(l.x2,l.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
+function drawBuffs(){
+  let y=62;
+  const labels={quad:"DAMAGE",haste:"HASTE",overdrive:"OVERDRIVE",magnet:"MAGNET",berserk:"BERSERK"};
 
-// ======================================================
-// DRAW SOLAR BLADES
-// ======================================================
+  ctx.textAlign="left";
+  ctx.font="bold 12px Arial";
 
-function drawSolarBlades() {
-    const weapon =
-        getCurrentWeapon();
+  for(const k in buffs){
+    const b=buffs[k];
+    if(!b.stacks||!b.time)continue;
 
+    ctx.fillStyle="#fff";
+    ctx.fillText(`${labels[k]} x${b.stacks} ${(b.time/1000).toFixed(1)}s`,12,y);
+    y+=17;
+  }
 
-    if (
-        weapon.type !==
-        "orbit"
-    ) {
-        return;
-    }
-
-
-    const bladeCount =
-        weapon.blades +
-        buffs.overdrive.stacks;
-
-
-    for (
-        let i = 0;
-        i <
-        bladeCount;
-        i++
-    ) {
-        const angle =
-            orbitAngle +
-            (
-                Math.PI *
-                2 /
-                bladeCount
-            ) *
-            i;
-
-
-        const x =
-            player.x +
-            Math.cos(
-                angle
-            ) *
-            72;
-
-
-        const y =
-            player.y +
-            Math.sin(
-                angle
-            ) *
-            72;
-
-
-        ctx.save();
-
-
-        ctx.translate(
-            x,
-            y
-        );
-
-
-        ctx.rotate(angle);
-
-
-        ctx.shadowBlur = 15;
-
-        ctx.shadowColor =
-            weapon.color;
-
-
-        ctx.fillStyle =
-            weapon.color;
-
-
-        ctx.fillRect(
-            -5,
-            -18,
-            10,
-            36
-        );
-
-
-        ctx.restore();
-    }
+  if(player.shield>0){
+    ctx.fillStyle="#70dcff";
+    ctx.fillText(`SHIELD ${Math.ceil(player.shield)}`,12,y);
+  }
 }
 
-
-// ======================================================
-// DRAW WEAPON PICKUPS
-// ======================================================
-
-function drawWeaponPickups() {
-    for (
-        const pickup
-        of weaponPickups
-    ) {
-        const weapon =
-            WEAPONS[
-                pickup.weaponKey
-            ];
-
-
-        ctx.save();
-
-
-        ctx.shadowBlur = 18;
-
-        ctx.shadowColor =
-            weapon.color;
-
-
-        ctx.beginPath();
-
-
-        ctx.arc(
-            pickup.x,
-            pickup.y,
-            pickup.radius,
-
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fillStyle =
-            "#111";
-
-        ctx.fill();
-
-
-        ctx.strokeStyle =
-            weapon.color;
-
-        ctx.lineWidth = 4;
-
-        ctx.stroke();
-
-
-        ctx.fillStyle =
-            "#fff";
-
-
-        ctx.font =
-            "bold 9px Arial";
-
-
-        ctx.textAlign =
-            "center";
-
-
-        ctx.textBaseline =
-            "middle";
-
-
-        const words =
-            weapon.name.split(
-                " "
-            );
-
-
-        if (
-            words.length >
-            1
-        ) {
-            ctx.fillText(
-                words[0],
-
-                pickup.x,
-
-                pickup.y -
-                5
-            );
-
-
-            ctx.fillText(
-                words
-                    .slice(1)
-                    .join(" "),
-
-                pickup.x,
-
-                pickup.y +
-                6
-            );
-        }
-
-        else {
-            ctx.fillText(
-                weapon.name,
-
-                pickup.x,
-                pickup.y
-            );
-        }
-
-
-        ctx.restore();
-    }
+function updateHUD(){
+  healthText.textContent=`HP: ${Math.ceil(player.health)}`;
+  weaponText.textContent=weapon().name;
+  scoreText.textContent=`Score: ${score}`;
 }
 
-
-// ======================================================
-// DRAW POWERUPS
-// ======================================================
-
-function drawPowerups() {
-    for (
-        const pickup
-        of powerups
-    ) {
-        const data =
-            POWERUPS[
-                pickup.key
-            ];
-
-
-        const pulse =
-            1 +
-            Math.sin(
-                pickup.pulse
-            ) *
-            0.12;
-
-
-        ctx.save();
-
-
-        ctx.shadowBlur = 20;
-
-        ctx.shadowColor =
-            data.color;
-
-
-        ctx.beginPath();
-
-
-        ctx.arc(
-            pickup.x,
-            pickup.y,
-
-            Math.max(
-                0,
-
-                pickup.radius *
-                pulse
-            ),
-
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fillStyle =
-            data.color;
-
-        ctx.fill();
-
-
-        ctx.fillStyle =
-            "#111";
-
-
-        ctx.font =
-            "bold 8px Arial";
-
-
-        ctx.textAlign =
-            "center";
-
-
-        ctx.textBaseline =
-            "middle";
-
-
-        ctx.fillText(
-            data.name,
-
-            pickup.x,
-            pickup.y
-        );
-
-
-        ctx.restore();
-    }
+function endGame(){
+  gameRunning=false;
+  finalScore.textContent=`Score: ${score}`;
+  gameOverScreen.classList.remove("hidden");
 }
 
+function resetGame(){
+  enemies=[];bullets=[];weaponPickups=[];powerups=[];explosions=[];particles=[];lightningEffects=[];
+  score=0;
+  player.x=width/2;player.y=height/2;player.health=player.maxHealth;player.shield=0;player.weaponKey="pistol";
 
-// ======================================================
-// DRAW EFFECTS
-// ======================================================
+  for(const k in buffs){
+    buffs[k].stacks=0;
+    buffs[k].time=0;
+  }
 
-function drawEffects() {
-    // PARTICLES
+  for(const k in keys)keys[k]=false;
 
-    for (
-        const particle
-        of particles
-    ) {
-        ctx.beginPath();
+  weaponBag=[];
+  refillWeaponBag();
 
+  lastShot=0;
+  enemySpawnTimer=0;
+  weaponSpawnTimer=0;
+  powerupSpawnTimer=0;
+  orbitAngle=0;
+  pointerActive=false;
+  gameRunning=true;
 
-        ctx.arc(
-            particle.x,
-            particle.y,
+  gameOverScreen.classList.add("hidden");
 
-            Math.max(
-                0,
-                particle.radius
-            ),
+  spawnWeaponPickup();
+  spawnWeaponPickup();
+  spawnPowerup();
 
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.fillStyle =
-            "#ffffff";
-
-        ctx.fill();
-    }
-
-
-    // EXPLOSIONS
-
-    for (
-        const explosion
-        of explosions
-    ) {
-        ctx.save();
-
-
-        ctx.globalAlpha =
-            Math.max(
-                0,
-
-                explosion.life /
-                explosion.duration
-            );
-
-
-        ctx.beginPath();
-
-
-        ctx.arc(
-            explosion.x,
-            explosion.y,
-
-            Math.max(
-                0,
-                explosion.radius
-            ),
-
-            0,
-            Math.PI *
-            2
-        );
-
-
-        ctx.strokeStyle =
-            explosion.color;
-
-
-        ctx.lineWidth = 10;
-
-        ctx.stroke();
-
-
-        ctx.restore();
-    }
-
-
-    // LIGHTNING
-
-    for (
-        const lightning
-        of lightningEffects
-    ) {
-        ctx.save();
-
-
-        ctx.shadowBlur = 15;
-
-        ctx.shadowColor =
-            lightning.color;
-
-
-        ctx.strokeStyle =
-            lightning.color;
-
-
-        ctx.lineWidth = 4;
-
-
-        ctx.beginPath();
-
-
-        ctx.moveTo(
-            lightning.x1,
-            lightning.y1
-        );
-
-
-        const segments = 5;
-
-
-        for (
-            let i = 1;
-            i <
-            segments;
-            i++
-        ) {
-            const t =
-                i /
-                segments;
-
-
-            const x =
-                lightning.x1 +
-                (
-                    lightning.x2 -
-                    lightning.x1
-                ) *
-                t +
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                15;
-
-
-            const y =
-                lightning.y1 +
-                (
-                    lightning.y2 -
-                    lightning.y1
-                ) *
-                t +
-                (
-                    Math.random() -
-                    0.5
-                ) *
-                15;
-
-
-            ctx.lineTo(
-                x,
-                y
-            );
-        }
-
-
-        ctx.lineTo(
-            lightning.x2,
-            lightning.y2
-        );
-
-
-        ctx.stroke();
-
-        ctx.restore();
-    }
+  lastTime=performance.now();
 }
 
+restartButton.addEventListener("click",resetGame);
 
-// ======================================================
-// DRAW ACTIVE BUFFS
-// ======================================================
+function gameLoop(time){
+  const dt=Math.min((time-lastTime)/1000,.05);
+  lastTime=time;
 
-function drawBuffs() {
-    let y = 62;
+  drawBackground();
 
+  if(gameRunning){
+    enemySpawnTimer+=dt*1000;
+    weaponSpawnTimer+=dt*1000;
+    powerupSpawnTimer+=dt*1000;
 
-    ctx.textAlign =
-        "left";
+    const spawnRate=Math.max(280,1150-score*.8);
 
-
-    ctx.font =
-        "bold 12px Arial";
-
-
-    const labels = {
-        quad:
-            "DAMAGE",
-
-        haste:
-            "HASTE",
-
-        overdrive:
-            "OVERDRIVE",
-
-        magnet:
-            "MAGNET",
-
-        berserk:
-            "BERSERK"
-    };
-
-
-    for (
-        const key
-        in buffs
-    ) {
-        const buff =
-            buffs[key];
-
-
-        if (
-            buff.stacks <= 0 ||
-            buff.time <= 0
-        ) {
-            continue;
-        }
-
-
-        ctx.fillStyle =
-            "#ffffff";
-
-
-        ctx.fillText(
-            `${labels[key]} x${buff.stacks} ${(buff.time / 1000).toFixed(1)}s`,
-
-            12,
-            y
-        );
-
-
-        y += 17;
+    if(enemySpawnTimer>=spawnRate){
+      enemySpawnTimer=0;
+      spawnEnemy();
     }
 
-
-    if (
-        player.shield >
-        0
-    ) {
-        ctx.fillStyle =
-            "#70dcff";
-
-
-        ctx.fillText(
-            "SHIELD " +
-            Math.ceil(
-                player.shield
-            ),
-
-            12,
-            y
-        );
-    }
-}
-
-
-// ======================================================
-// HUD
-// ======================================================
-
-function updateHUD() {
-    healthText.textContent =
-        "HP: " +
-        Math.ceil(
-            player.health
-        );
-
-
-    weaponText.textContent =
-        getCurrentWeapon()
-            .name;
-
-
-    scoreText.textContent =
-        "Score: " +
-        score;
-}
-
-
-// ======================================================
-// GAME OVER
-// ======================================================
-
-function endGame() {
-    gameRunning = false;
-
-
-    finalScore.textContent =
-        "Score: " +
-        score;
-
-
-    gameOverScreen.classList.remove(
-        "hidden"
-    );
-}
-
-
-// ======================================================
-// RESET
-// ======================================================
-
-function resetGame() {
-    enemies = [];
-
-    bullets = [];
-
-    weaponPickups = [];
-
-    powerups = [];
-
-    explosions = [];
-
-    particles = [];
-
-    lightningEffects = [];
-
-
-    score = 0;
-
-
-    player.x =
-        width / 2;
-
-
-    player.y =
-        height / 2;
-
-
-    player.health =
-        player.maxHealth;
-
-
-    player.shield = 0;
-
-
-    player.weaponKey =
-        "pistol";
-
-
-    for (
-        const key
-        in buffs
-    ) {
-        buffs[key].stacks = 0;
-
-        buffs[key].time = 0;
+    if(weaponSpawnTimer>=8500){
+      weaponSpawnTimer=0;
+      spawnWeaponPickup();
     }
 
-
-    weaponBag = [];
-
-    refillWeaponBag();
-
-
-    lastShot = 0;
-
-    enemySpawnTimer = 0;
-
-    weaponSpawnTimer = 0;
-
-    powerupSpawnTimer = 0;
-
-    pointerActive = false;
-
-    orbitAngle = 0;
-
-
-    gameRunning = true;
-
-
-    gameOverScreen.classList.add(
-        "hidden"
-    );
-
-
-    spawnWeaponPickup();
-
-    spawnWeaponPickup();
-
-    spawnPowerup();
-
-
-    lastTime =
-        performance.now();
-}
-
-
-restartButton.addEventListener(
-    "click",
-    resetGame
-);
-
-
-// ======================================================
-// GAME LOOP
-// ======================================================
-
-function gameLoop(time) {
-    const delta =
-        Math.min(
-            (
-                time -
-                lastTime
-            ) /
-            1000,
-
-            0.05
-        );
-
-
-    lastTime = time;
-
-
-    drawBackground();
-
-
-    if (
-        gameRunning
-    ) {
-        enemySpawnTimer +=
-            delta *
-            1000;
-
-
-        weaponSpawnTimer +=
-            delta *
-            1000;
-
-
-        powerupSpawnTimer +=
-            delta *
-            1000;
-
-
-        const enemySpawnRate =
-            Math.max(
-                280,
-
-                1150 -
-                score *
-                0.8
-            );
-
-
-        if (
-            enemySpawnTimer >=
-            enemySpawnRate
-        ) {
-            enemySpawnTimer = 0;
-
-            spawnEnemy();
-        }
-
-
-        if (
-            weaponSpawnTimer >=
-            8500
-        ) {
-            weaponSpawnTimer = 0;
-
-            spawnWeaponPickup();
-        }
-
-
-        if (
-            powerupSpawnTimer >=
-            9000
-        ) {
-            powerupSpawnTimer = 0;
-
-            spawnPowerup();
-        }
-
-
-        updatePlayer(delta);
-
-        updateEnemies(delta);
-
-        updateBullets(delta);
-
-        updateSolarBlades(
-            delta
-        );
-
-        updatePickups(delta);
-
-        updateBuffs(delta);
-
-        updateEffects(delta);
-
-
-        shoot(time);
-
-
-        updateHUD();
+    if(powerupSpawnTimer>=9000){
+      powerupSpawnTimer=0;
+      spawnPowerup();
     }
 
+    updatePlayer(dt);
+    updateEnemies(dt);
+    updateBullets(dt);
+    updateSolarBlades(dt);
+    updatePickups(dt);
+    updateBuffs(dt);
+    updateEffects(dt);
 
-    drawWeaponPickups();
+    shoot(time);
+    updateHUD();
+  }
 
-    drawPowerups();
+  drawWeaponPickups();
+  drawPowerups();
+  drawEnemies();
+  drawBullets();
+  drawSolarBlades();
+  drawPlayer();
+  drawEffects();
+  drawBuffs();
 
-    drawEnemies();
-
-    drawBullets();
-
-    drawSolarBlades();
-
-    drawPlayer();
-
-    drawEffects();
-
-    drawBuffs();
-
-
-    requestAnimationFrame(
-        gameLoop
-    );
+  requestAnimationFrame(gameLoop);
 }
-
-
-// ======================================================
-// START GAME
-// ======================================================
 
 resizeCanvas();
-
-
-player.x =
-    width / 2;
-
-
-player.y =
-    height / 2;
-
+player.x=width/2;
+player.y=height/2;
 
 refillWeaponBag();
-
-
 spawnWeaponPickup();
-
 spawnWeaponPickup();
-
 spawnPowerup();
-
 
 updateHUD();
 
-
-lastTime =
-    performance.now();
-
-
-requestAnimationFrame(
-    gameLoop
-);
+lastTime=performance.now();
+requestAnimationFrame(gameLoop);
