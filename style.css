@@ -1,134 +1,357 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111820;font-family:Arial,sans-serif;color:#fff;touch-action:none}
+#gameCanvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+#hud{
+position:fixed;
+z-index:5;
+top:8px;
+left:10px;
+right:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:14px;
+font-weight:900;
+pointer-events:none;
+text-shadow:0 2px 5px #000
 }
 
-html,
-body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-
-    background: #111;
-
-    touch-action: none;
-
-    font-family: Arial, Helvetica, sans-serif;
+#topProgress{
+position:fixed;
+z-index:6;
+top:31px;
+left:10px;
+right:10px;
+display:flex;
+align-items:center;
+gap:10px;
+pointer-events:none
 }
 
-body {
-    position: fixed;
-    inset: 0;
+#xpHUD{
+height:17px;
+display:flex;
+align-items:center;
+gap:7px;
+flex:1
 }
 
-#game {
-    position: relative;
-
-    width: 100vw;
-    height: 100dvh;
-
-    overflow: hidden;
-
-    background:
-        radial-gradient(
-            circle at center,
-            #303b31 0%,
-            #1c261e 65%,
-            #131914 100%
-        );
+#levelText{
+font-size:11px;
+font-weight:900;
+min-width:34px;
+text-shadow:0 2px 4px #000
 }
 
-#gameCanvas {
-    position: absolute;
-
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 100%;
-
-    display: block;
-
-    touch-action: none;
+#xpTrack{
+height:8px;
+flex:1;
+background:#090d12;
+border:1px solid #ffffff88;
+border-radius:5px;
+overflow:hidden
 }
 
-#hud {
-    position: absolute;
-
-    top: max(12px, env(safe-area-inset-top));
-    left: 12px;
-    right: 12px;
-
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-
-    pointer-events: none;
-
-    z-index: 10;
+#xpBar{
+height:100%;
+width:0;
+background:#a95cff;
+transition:width .1s linear
 }
 
-#hud div {
-    background: rgba(0, 0, 0, 0.55);
-
-    color: white;
-
-    padding: 8px 10px;
-
-    border-radius: 8px;
-
-    font-size: clamp(12px, 3.4vw, 18px);
-
-    font-weight: bold;
-
-    white-space: nowrap;
+#shieldHUD{
+font-size:10px;
+font-weight:900;
+color:#73dcff;
+border:1px solid #73dcff;
+background:#061720cc;
+border-radius:5px;
+padding:3px 7px;
+text-shadow:0 1px 4px #000
 }
 
-#gameOverScreen {
-    position: absolute;
-
-    inset: 0;
-
-    display: flex;
-    flex-direction: column;
-
-    justify-content: center;
-    align-items: center;
-
-    gap: 20px;
-
-    background: rgba(0, 0, 0, 0.75);
-
-    color: white;
-
-    z-index: 20;
+#dashButton{
+display:none;
+position:fixed;
+z-index:7;
+right:18px;
+bottom:25px;
+width:68px;
+height:68px;
+border-radius:50%;
+border:2px solid #fff;
+background:#17212ddd;
+color:#fff;
+font-size:12px;
+font-weight:900
 }
 
-#gameOverScreen h1 {
-    font-size: clamp(40px, 12vw, 80px);
+#levelScreen,#gameOverScreen{
+position:fixed;
+z-index:20;
+inset:0;
+background:#05080ddd;
+display:flex;
+align-items:center;
+justify-content:center
 }
 
-#gameOverScreen p {
-    font-size: clamp(20px, 6vw, 32px);
+.hidden{display:none!important}
+
+#levelBox{
+width:min(920px,94vw);
+text-align:center
 }
 
-#restartButton {
-    border: none;
-
-    padding: 15px 30px;
-
-    border-radius: 10px;
-
-    font-size: 20px;
-    font-weight: bold;
-
-    background: white;
-    color: black;
-
-    cursor: pointer;
+#levelBox h1{
+margin:0 0 18px;
+font-size:34px;
+letter-spacing:4px;
+text-shadow:0 3px 10px #000
 }
 
-.hidden {
-    display: none !important;
+#upgradeCards{
+display:flex;
+justify-content:center;
+align-items:stretch;
+gap:14px;
+width:100%
+}
+
+.upgrade{
+width:30%;
+min-height:190px;
+padding:18px;
+border:2px solid #ffffff66;
+border-radius:10px;
+background:#17212d;
+color:#fff;
+text-align:left;
+cursor:pointer;
+box-shadow:0 8px 25px #0009;
+transition:.1s
+}
+
+.upgrade:hover{
+border-color:#fff
+}
+
+.upgrade.selected{
+border-color:#fff;
+box-shadow:0 0 28px #fff8;
+transform:translateY(-4px) scale(1.02)
+}
+
+.upgrade h2{
+margin:0 0 6px;
+font-size:19px
+}
+
+.upgrade .lv{
+margin-bottom:12px;
+font-size:13px;
+font-weight:900;
+color:#ffd45f
+}
+
+.upgrade p{
+margin:0;
+font-size:13px;
+line-height:1.4;
+color:#d9e0e7
+}
+
+.upgradeTop{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:8px;
+margin-bottom:9px;
+font-size:10px;
+font-weight:900;
+letter-spacing:.7px
+}
+
+.type{
+padding:3px 6px;
+border-radius:4px
+}
+
+.type.weapon{
+background:#401a1a;
+color:#ff9b9b
+}
+
+.type.passive{
+background:#142b40;
+color:#8ed7ff
+}
+
+.rarity{
+opacity:.95
+}
+
+.rarity-common{
+border-color:#b8b8b8
+}
+
+.rarity-uncommon{
+border-color:#64e572
+}
+
+.rarity-rare{
+border-color:#4da6ff
+}
+
+.rarity-epic{
+border-color:#b05cff;
+box-shadow:0 0 15px #a442ff2c
+}
+
+.rarity-legendary{
+border-color:#ffb52e;
+box-shadow:0 0 18px #ff9d0038
+}
+
+.rarity-common .rarity{
+color:#ddd
+}
+
+.rarity-uncommon .rarity{
+color:#73ef81
+}
+
+.rarity-rare .rarity{
+color:#65b4ff
+}
+
+.rarity-epic .rarity{
+color:#c27aff
+}
+
+.rarity-legendary .rarity{
+color:#ffc14f
+}
+
+.upgrade.evo{
+border:3px solid #ffd700;
+background:#29220f;
+box-shadow:0 0 28px #ffd70055
+}
+
+.upgrade.evo h2{
+color:#ffe36b
+}
+
+.upgrade.evo.selected{
+border-color:#fff3a0;
+box-shadow:0 0 34px #ffd700aa
+}
+
+#gameOverBox{
+min-width:280px;
+padding:30px;
+text-align:center;
+border:2px solid #ffffff55;
+border-radius:12px;
+background:#151d27;
+box-shadow:0 10px 40px #000
+}
+
+#gameOverBox h1{
+margin:0 0 15px;
+font-size:30px
+}
+
+#gameOverBox p{
+margin:0 0 20px
+}
+
+#restartButton{
+padding:12px 25px;
+border:0;
+border-radius:7px;
+background:#fff;
+color:#111;
+font-size:15px;
+font-weight:900;
+cursor:pointer
+}
+
+@media(pointer:coarse){
+#dashButton{display:block}
+}
+
+@media(max-width:650px){
+#hud{
+top:6px;
+left:7px;
+right:7px;
+font-size:10px
+}
+
+#topProgress{
+top:25px;
+left:7px;
+right:7px
+}
+
+#levelText{
+font-size:9px;
+min-width:29px
+}
+
+#shieldHUD{
+font-size:8px;
+padding:2px 5px
+}
+
+#levelBox{
+width:92vw;
+height:94vh;
+display:flex;
+flex-direction:column;
+justify-content:center
+}
+
+#levelBox h1{
+font-size:24px;
+margin-bottom:10px
+}
+
+#upgradeCards{
+flex-direction:column;
+gap:8px
+}
+
+.upgrade{
+width:100%;
+min-height:0;
+padding:12px 14px
+}
+
+.upgrade h2{
+font-size:16px;
+margin-bottom:3px
+}
+
+.upgrade .lv{
+font-size:11px;
+margin-bottom:5px
+}
+
+.upgrade p{
+font-size:11px;
+line-height:1.25
+}
+
+.upgradeTop{
+font-size:9px;
+margin-bottom:6px
+}
+
+.upgrade.selected{
+transform:scale(1.01)
+}
 }
