@@ -4,77 +4,26 @@ const ctx = canvas.getContext("2d");
 const healthText = document.getElementById("healthText");
 const weaponText = document.getElementById("weaponText");
 const scoreText = document.getElementById("scoreText");
-
 const gameOverScreen = document.getElementById("gameOverScreen");
 const finalScore = document.getElementById("finalScore");
 const restartButton = document.getElementById("restartButton");
-
-
-// ======================================================
-// CANVAS
-// ======================================================
 
 let width = 0;
 let height = 0;
 let pixelRatio = 1;
 
-function resizeCanvas() {
-    pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-
-    width = window.innerWidth;
-    height = window.innerHeight;
-
-    canvas.width = width * pixelRatio;
-    canvas.height = height * pixelRatio;
-
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
-
-    ctx.setTransform(
-        pixelRatio,
-        0,
-        0,
-        pixelRatio,
-        0,
-        0
-    );
-
-    if (!player.x || !player.y) {
-        player.x = width / 2;
-        player.y = height / 2;
-    }
-}
-
-window.addEventListener("resize", resizeCanvas);
-
-
-// ======================================================
-// IMAGE
-// ======================================================
-
 const hippoImage = new Image();
 hippoImage.src = "hippo.png";
-
-
-// ======================================================
-// PLAYER
-// ======================================================
 
 const player = {
     x: 0,
     y: 0,
-
     radius: 18,
-
-    speed: 270,
-
+    speed: 295,
     health: 150,
     maxHealth: 150,
-
     color: "#55ccff",
-
     weaponKey: "pistol",
-
     shield: 0
 };
 
@@ -84,155 +33,137 @@ const player = {
 // ======================================================
 
 const WEAPONS = {
-
     pistol: {
         name: "Pistol",
         type: "normal",
-
-        damage: 40,
-        fireRate: 380,
-
-        bulletSpeed: 750,
+        damage: 42,
+        fireRate: 350,
+        bulletSpeed: 800,
         bulletSize: 6,
-
         color: "#ffffff"
     },
-
 
     plasma: {
         name: "Plasma SMG",
         type: "normal",
-
-        damage: 20,
-        fireRate: 85,
-
-        bulletSpeed: 800,
+        damage: 22,
+        fireRate: 80,
+        bulletSpeed: 850,
         bulletSize: 5,
-
         color: "#00eaff"
     },
-
 
     shotgun: {
         name: "Titan Shotgun",
         type: "shotgun",
-
-        damage: 35,
-        fireRate: 650,
-
-        bulletSpeed: 700,
+        damage: 38,
+        fireRate: 620,
+        bulletSpeed: 720,
         bulletSize: 7,
-
-        pellets: 8,
-        spread: 0.75,
-
-        knockback: 45,
-
+        pellets: 9,
+        spread: 0.8,
+        knockback: 50,
         color: "#ff9d00"
     },
-
 
     railgun: {
         name: "Railgun",
         type: "railgun",
-
-        damage: 140,
-        fireRate: 900,
-
-        bulletSpeed: 1500,
+        damage: 155,
+        fireRate: 850,
+        bulletSpeed: 1600,
         bulletSize: 7,
-
-        pierce: 6,
-
+        pierce: 7,
         color: "#e600ff"
     },
-
 
     void: {
         name: "Void Cannon",
         type: "explosive",
-
-        damage: 85,
-        fireRate: 1100,
-
-        bulletSpeed: 450,
-        bulletSize: 13,
-
-        explosionRadius: 130,
-        explosionDamage: 100,
-
+        damage: 95,
+        fireRate: 1000,
+        bulletSpeed: 475,
+        bulletSize: 14,
+        explosionRadius: 145,
+        explosionDamage: 115,
         color: "#8c52ff"
     },
-
 
     arc: {
         name: "Arc Blaster",
         type: "arc",
-
-        damage: 65,
-        fireRate: 700,
-
-        chainDamage: 45,
-        chains: 4,
-        chainRange: 160,
-
+        damage: 72,
+        fireRate: 630,
+        chainDamage: 52,
+        chains: 5,
+        chainRange: 175,
         color: "#66ffff"
     },
-
 
     starfire: {
         name: "Starfire Wand",
         type: "homing",
-
-        damage: 52,
-        fireRate: 280,
-
-        bulletSpeed: 500,
+        damage: 58,
+        fireRate: 250,
+        bulletSpeed: 540,
         bulletSize: 8,
-
-        homingStrength: 6,
-
+        homingStrength: 7,
         color: "#ff4fd8"
     },
-
 
     frost: {
         name: "Frost Repeater",
         type: "frost",
-
-        damage: 24,
-        fireRate: 125,
-
-        bulletSpeed: 700,
+        damage: 28,
+        fireRate: 115,
+        bulletSpeed: 760,
         bulletSize: 6,
-
-        slow: 0.55,
-        slowTime: 2200,
-
+        slow: 0.5,
+        slowTime: 2500,
         color: "#9fe8ff"
     },
-
 
     solar: {
         name: "Solar Blades",
         type: "orbit",
-
-        damage: 80,
+        damage: 90,
         fireRate: 0,
-
         blades: 4,
-
         color: "#ffda44"
+    },
+
+    nova: {
+        name: "Nova Lance",
+        type: "nova",
+        damage: 75,
+        fireRate: 420,
+        bulletSpeed: 900,
+        bulletSize: 8,
+        sideShots: 2,
+        color: "#ff6bff"
+    },
+
+    singularity: {
+        name: "Singularity Gun",
+        type: "singularity",
+        damage: 35,
+        fireRate: 1250,
+        bulletSpeed: 380,
+        bulletSize: 16,
+        pullRadius: 180,
+        pullStrength: 170,
+        explosionRadius: 115,
+        explosionDamage: 85,
+        color: "#6d3cff"
     }
 };
 
 
 // ======================================================
-// POWER UPS
+// POWERUPS
 // ======================================================
 
 const POWERUPS = {
-
     heal: {
         name: "HEAL",
         color: "#40ff75"
@@ -244,7 +175,7 @@ const POWERUPS = {
     },
 
     quad: {
-        name: "QUAD",
+        name: "DAMAGE",
         color: "#ff3838"
     },
 
@@ -276,15 +207,39 @@ const POWERUPS = {
 
 
 // ======================================================
-// ACTIVE BUFFS
+// STACKABLE BUFFS
 // ======================================================
 
 const buffs = {
-    quad: 0,
-    haste: 0,
-    overdrive: 0,
-    magnet: 0,
-    berserk: 0
+    quad: {
+        stacks: 0,
+        time: 0,
+        maxStacks: 3
+    },
+
+    haste: {
+        stacks: 0,
+        time: 0,
+        maxStacks: 3
+    },
+
+    overdrive: {
+        stacks: 0,
+        time: 0,
+        maxStacks: 3
+    },
+
+    magnet: {
+        stacks: 0,
+        time: 0,
+        maxStacks: 2
+    },
+
+    berserk: {
+        stacks: 0,
+        time: 0,
+        maxStacks: 3
+    }
 };
 
 
@@ -303,8 +258,11 @@ let enemySpawnTimer = 0;
 let weaponSpawnTimer = 0;
 let powerupSpawnTimer = 0;
 
+let orbitAngle = 0;
+
 let enemies = [];
 let bullets = [];
+
 let weaponPickups = [];
 let powerups = [];
 
@@ -312,17 +270,78 @@ let explosions = [];
 let lightningEffects = [];
 let particles = [];
 
-let orbitAngle = 0;
+let weaponBag = [];
+
+
+// ======================================================
+// INPUT
+// ======================================================
+
+let pointerActive = false;
+
+let pointerX = 0;
+let pointerY = 0;
+
+const keys = {};
+
+
+// ======================================================
+// CANVAS
+// ======================================================
+
+function resizeCanvas() {
+    pixelRatio = Math.min(
+        window.devicePixelRatio || 1,
+        2
+    );
+
+    width = window.innerWidth;
+    height = window.innerHeight;
+
+    canvas.width =
+        width * pixelRatio;
+
+    canvas.height =
+        height * pixelRatio;
+
+    canvas.style.width =
+        width + "px";
+
+    canvas.style.height =
+        height + "px";
+
+    ctx.setTransform(
+        pixelRatio,
+        0,
+        0,
+        pixelRatio,
+        0,
+        0
+    );
+
+    if (
+        !player.x ||
+        !player.y
+    ) {
+        player.x =
+            width / 2;
+
+        player.y =
+            height / 2;
+    }
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
 
 
 // ======================================================
 // WEAPON BAG
 // ======================================================
 
-let weaponBag = [];
-
 function refillWeaponBag() {
-
     weaponBag = [
         "plasma",
         "shotgun",
@@ -331,11 +350,19 @@ function refillWeaponBag() {
         "arc",
         "starfire",
         "frost",
-        "solar"
+        "solar",
+        "nova",
+        "singularity"
     ];
 
-    for (let i = weaponBag.length - 1; i > 0; i--) {
+    for (
+        let i =
+            weaponBag.length - 1;
 
+        i > 0;
+
+        i--
+    ) {
         const j =
             Math.floor(
                 Math.random() *
@@ -354,45 +381,52 @@ function refillWeaponBag() {
 
 
 // ======================================================
-// INPUT
+// DESKTOP INPUT
 // ======================================================
 
-let pointerActive = false;
-let pointerX = 0;
-let pointerY = 0;
+canvas.addEventListener(
+    "mousedown",
+    event => {
+        pointerActive = true;
 
-const keys = {};
+        pointerX =
+            event.clientX;
+
+        pointerY =
+            event.clientY;
+    }
+);
+
+canvas.addEventListener(
+    "mousemove",
+    event => {
+        if (!pointerActive) {
+            return;
+        }
+
+        pointerX =
+            event.clientX;
+
+        pointerY =
+            event.clientY;
+    }
+);
+
+window.addEventListener(
+    "mouseup",
+    () => {
+        pointerActive = false;
+    }
+);
 
 
-// DESKTOP
-
-canvas.addEventListener("mousedown", event => {
-
-    pointerActive = true;
-
-    pointerX = event.clientX;
-    pointerY = event.clientY;
-});
-
-canvas.addEventListener("mousemove", event => {
-
-    if (!pointerActive) return;
-
-    pointerX = event.clientX;
-    pointerY = event.clientY;
-});
-
-window.addEventListener("mouseup", () => {
-    pointerActive = false;
-});
-
-
-// MOBILE
+// ======================================================
+// MOBILE INPUT
+// ======================================================
 
 canvas.addEventListener(
     "touchstart",
     event => {
-
         event.preventDefault();
 
         const touch =
@@ -407,13 +441,14 @@ canvas.addEventListener(
             touch.clientY;
     },
 
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 canvas.addEventListener(
     "touchmove",
     event => {
-
         event.preventDefault();
 
         const touch =
@@ -426,28 +461,39 @@ canvas.addEventListener(
             touch.clientY;
     },
 
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 canvas.addEventListener(
     "touchend",
     event => {
-
         event.preventDefault();
 
         pointerActive = false;
     },
 
-    { passive: false }
+    {
+        passive: false
+    }
+);
+
+canvas.addEventListener(
+    "touchcancel",
+    () => {
+        pointerActive = false;
+    }
 );
 
 
-// WASD
+// ======================================================
+// KEYBOARD INPUT
+// ======================================================
 
 window.addEventListener(
     "keydown",
     event => {
-
         keys[
             event.key.toLowerCase()
         ] = true;
@@ -457,7 +503,6 @@ window.addEventListener(
 window.addEventListener(
     "keyup",
     event => {
-
         keys[
             event.key.toLowerCase()
         ] = false;
@@ -466,11 +511,10 @@ window.addEventListener(
 
 
 // ======================================================
-// UTILS
+// UTILITIES
 // ======================================================
 
 function distance(a, b) {
-
     return Math.hypot(
         a.x - b.x,
         a.y - b.y
@@ -479,7 +523,6 @@ function distance(a, b) {
 
 
 function circlesTouch(a, b) {
-
     const r =
         a.radius +
         b.radius;
@@ -500,8 +543,9 @@ function circlesTouch(a, b) {
 }
 
 
-function randomMapPosition(padding = 80) {
-
+function randomMapPosition(
+    padding = 80
+) {
     return {
         x:
             padding +
@@ -525,24 +569,22 @@ function randomMapPosition(padding = 80) {
 
 
 // ======================================================
-// ENEMIES
+// ENEMY SPAWNING
 // ======================================================
 
 function spawnEnemy() {
-
     const side =
         Math.floor(
             Math.random() *
             4
         );
 
-    const margin = 60;
+    const margin = 50;
 
     let x;
     let y;
 
     if (side === 0) {
-
         x =
             Math.random() *
             width;
@@ -551,7 +593,6 @@ function spawnEnemy() {
     }
 
     else if (side === 1) {
-
         x =
             width +
             margin;
@@ -562,7 +603,6 @@ function spawnEnemy() {
     }
 
     else if (side === 2) {
-
         x =
             Math.random() *
             width;
@@ -573,7 +613,6 @@ function spawnEnemy() {
     }
 
     else {
-
         x = -margin;
 
         y =
@@ -585,26 +624,26 @@ function spawnEnemy() {
     const difficulty =
         1 +
         score /
-        600;
+        650;
 
 
-    let radius =
-        23 +
+    // Smaller hippos
+    const radius =
+        19 +
         Math.random() *
-        5;
+        4;
 
 
-    enemies.push({
-
+    const enemy = {
         x,
         y,
 
         radius,
 
         speed:
-            65 +
+            67 +
             Math.random() *
-            35 +
+            32 +
             difficulty *
             3,
 
@@ -618,39 +657,39 @@ function spawnEnemy() {
         maxHealth: 0,
 
         damage:
-            18 +
+            17 +
             difficulty *
-            0.5,
+            0.45,
 
         hitCooldown: 0,
 
         slowTimer: 0,
 
-        dead: false
-    });
+        dead: false,
 
+        bladeHit: 0
+    };
 
-    const enemy =
-        enemies[
-            enemies.length - 1
-        ];
 
     enemy.baseSpeed =
         enemy.speed;
 
     enemy.maxHealth =
         enemy.health;
+
+
+    enemies.push(enemy);
 }
 
 
 // ======================================================
-// PICKUPS
+// WEAPON PICKUPS
 // ======================================================
 
 function spawnWeaponPickup() {
-
     if (
-        weaponBag.length === 0
+        weaponBag.length ===
+        0
     ) {
         refillWeaponBag();
     }
@@ -661,7 +700,6 @@ function spawnWeaponPickup() {
 
 
     weaponPickups.push({
-
         x: pos.x,
         y: pos.y,
 
@@ -675,19 +713,22 @@ function spawnWeaponPickup() {
 }
 
 
-function spawnPowerup() {
+// ======================================================
+// POWERUP SPAWNING
+// ======================================================
 
-    const keys =
+function spawnPowerup() {
+    const keysList =
         Object.keys(
             POWERUPS
         );
 
 
     const key =
-        keys[
+        keysList[
             Math.floor(
                 Math.random() *
-                keys.length
+                keysList.length
             )
         ];
 
@@ -697,7 +738,6 @@ function spawnPowerup() {
 
 
     powerups.push({
-
         x: pos.x,
         y: pos.y,
 
@@ -705,7 +745,7 @@ function spawnPowerup() {
 
         key,
 
-        life: 13000,
+        life: 14000,
 
         pulse: 0
     });
@@ -720,16 +760,16 @@ function findNearestEnemy(
     source = player,
     excluded = new Set()
 ) {
-
     let nearest = null;
-    let nearestDistance = Infinity;
+
+    let nearestDistance =
+        Infinity;
 
 
     for (
         const enemy
         of enemies
     ) {
-
         if (
             enemy.dead ||
             excluded.has(enemy)
@@ -749,7 +789,6 @@ function findNearestEnemy(
             d <
             nearestDistance
         ) {
-
             nearestDistance = d;
 
             nearest = enemy;
@@ -762,30 +801,77 @@ function findNearestEnemy(
 
 
 // ======================================================
-// DAMAGE
+// WEAPON HELPERS
 // ======================================================
 
-function getDamageMultiplier() {
+function getCurrentWeapon() {
+    return WEAPONS[
+        player.weaponKey
+    ];
+}
 
+
+function getDamageMultiplier() {
     let multiplier = 1;
 
 
-    if (buffs.quad > 0) {
-        multiplier *= 4;
-    }
+    // Damage stacks
+    multiplier *=
+        1 +
+        buffs.quad.stacks *
+        1.25;
 
 
-    if (
-        buffs.berserk >
-        0
-    ) {
-        multiplier *= 1.8;
-    }
+    // Berserk damage stacks
+    multiplier *=
+        1 +
+        buffs.berserk.stacks *
+        0.45;
 
 
     return multiplier;
 }
 
+
+function getFireRate(weapon) {
+    let rate =
+        weapon.fireRate;
+
+
+    // Haste stacks
+    rate *=
+        Math.pow(
+            0.80,
+            buffs.haste.stacks
+        );
+
+
+    // Overdrive stacks
+    rate *=
+        Math.pow(
+            0.82,
+            buffs.overdrive.stacks
+        );
+
+
+    // Berserk stacks
+    rate *=
+        Math.pow(
+            0.90,
+            buffs.berserk.stacks
+        );
+
+
+    return Math.max(
+        35,
+        rate
+    );
+}
+
+
+// ======================================================
+// DAMAGE
+// ======================================================
 
 function damageEnemy(
     enemy,
@@ -793,7 +879,6 @@ function damageEnemy(
     knockback = 0,
     angle = 0
 ) {
-
     if (
         !enemy ||
         enemy.dead
@@ -811,7 +896,6 @@ function damageEnemy(
         knockback >
         0
     ) {
-
         enemy.x +=
             Math.cos(angle) *
             knockback;
@@ -831,10 +915,10 @@ function damageEnemy(
     if (
         enemy.health <= 0
     ) {
-
         enemy.dead = true;
 
         score += 10;
+
 
         createDeathParticles(
             enemy.x,
@@ -848,52 +932,7 @@ function damageEnemy(
 // SHOOTING
 // ======================================================
 
-function getCurrentWeapon() {
-
-    return WEAPONS[
-        player.weaponKey
-    ];
-}
-
-
-function getFireRate(
-    weapon
-) {
-
-    let rate =
-        weapon.fireRate;
-
-
-    if (
-        buffs.haste >
-        0
-    ) {
-        rate *= 0.55;
-    }
-
-
-    if (
-        buffs.overdrive >
-        0
-    ) {
-        rate *= 0.45;
-    }
-
-
-    if (
-        buffs.berserk >
-        0
-    ) {
-        rate *= 0.7;
-    }
-
-
-    return rate;
-}
-
-
 function shoot(time) {
-
     const weapon =
         getCurrentWeapon();
 
@@ -923,11 +962,13 @@ function shoot(time) {
     }
 
 
-    const enemy =
+    const target =
         findNearestEnemy();
 
 
-    if (!enemy) return;
+    if (!target) {
+        return;
+    }
 
 
     lastShot = time;
@@ -935,26 +976,26 @@ function shoot(time) {
 
     const angle =
         Math.atan2(
-            enemy.y -
+            target.y -
             player.y,
 
-            enemy.x -
+            target.x -
             player.x
         );
 
+
+    // SHOTGUN
 
     if (
         weapon.type ===
         "shotgun"
     ) {
-
         for (
             let i = 0;
             i <
             weapon.pellets;
             i++
         ) {
-
             const spread =
                 (
                     Math.random() -
@@ -975,13 +1016,14 @@ function shoot(time) {
     }
 
 
+    // ARC BLASTER
+
     if (
         weapon.type ===
         "arc"
     ) {
-
         fireArcWeapon(
-            enemy,
+            target,
             weapon
         );
 
@@ -989,37 +1031,104 @@ function shoot(time) {
     }
 
 
+    // NOVA LANCE
+
+    if (
+        weapon.type ===
+        "nova"
+    ) {
+        createBullet(
+            angle,
+            weapon
+        );
+
+
+        const sideCount =
+            weapon.sideShots +
+            buffs.overdrive.stacks;
+
+
+        const spread =
+            0.18;
+
+
+        for (
+            let i = 1;
+            i <=
+            sideCount;
+            i++
+        ) {
+            createBullet(
+                angle -
+                spread *
+                i,
+
+                weapon
+            );
+
+
+            createBullet(
+                angle +
+                spread *
+                i,
+
+                weapon
+            );
+        }
+
+        return;
+    }
+
+
+    // NORMAL SHOT
+
     createBullet(
         angle,
         weapon
     );
 
 
-    if (
-        buffs.overdrive >
-        0
+    // OVERDRIVE STACKING
+    // Each stack adds two extra shots
+
+    for (
+        let i = 1;
+        i <=
+        buffs.overdrive.stacks;
+        i++
     ) {
+        const spread =
+            0.10 *
+            i;
+
 
         createBullet(
-            angle - 0.15,
+            angle -
+            spread,
+
             weapon
         );
 
+
         createBullet(
-            angle + 0.15,
+            angle +
+            spread,
+
             weapon
         );
     }
 }
 
 
+// ======================================================
+// CREATE BULLET
+// ======================================================
+
 function createBullet(
     angle,
     weapon
 ) {
-
     bullets.push({
-
         x: player.x,
         y: player.y,
 
@@ -1076,7 +1185,19 @@ function createBullet(
             weapon.knockback ||
             0,
 
-        life: 3000
+        pullRadius:
+            weapon.pullRadius ||
+            0,
+
+        pullStrength:
+            weapon.pullStrength ||
+            0,
+
+        life:
+            weapon.type ===
+            "singularity"
+                ? 1900
+                : 3000
     });
 }
 
@@ -1089,12 +1210,12 @@ function fireArcWeapon(
     firstEnemy,
     weapon
 ) {
-
     let current =
         firstEnemy;
 
     let currentDamage =
         weapon.damage;
+
 
     const hit =
         new Set();
@@ -1106,20 +1227,23 @@ function fireArcWeapon(
     };
 
 
+    const totalChains =
+        weapon.chains +
+        buffs.overdrive.stacks;
+
+
     for (
         let i = 0;
         i <
-        weapon.chains;
+        totalChains;
         i++
     ) {
-
         if (!current) {
             break;
         }
 
 
         lightningEffects.push({
-
             x1: start.x,
             y1: start.y,
 
@@ -1153,14 +1277,15 @@ function fireArcWeapon(
 
 
         let next = null;
-        let best = Infinity;
+
+        let best =
+            Infinity;
 
 
         for (
             const enemy
             of enemies
         ) {
-
             if (
                 hit.has(enemy) ||
                 enemy.dead
@@ -1171,7 +1296,6 @@ function fireArcWeapon(
 
             const d =
                 Math.hypot(
-
                     enemy.x -
                     start.x,
 
@@ -1183,9 +1307,9 @@ function fireArcWeapon(
             if (
                 d <
                 weapon.chainRange &&
-                d < best
+                d <
+                best
             ) {
-
                 best = d;
 
                 next = enemy;
@@ -1206,11 +1330,11 @@ function createExplosion(
     x,
     y,
     radius,
-    damage
+    damage,
+    duration = 300,
+    color = "#c45cff"
 ) {
-
     explosions.push({
-
         x,
         y,
 
@@ -1219,7 +1343,12 @@ function createExplosion(
         maxRadius:
             radius,
 
-        life: 300
+        life:
+            duration,
+
+        duration,
+
+        color
     });
 
 
@@ -1227,10 +1356,11 @@ function createExplosion(
         const enemy
         of enemies
     ) {
-
         if (
             enemy.dead
-        ) continue;
+        ) {
+            continue;
+        }
 
 
         const d =
@@ -1244,7 +1374,6 @@ function createExplosion(
             d <
             radius
         ) {
-
             const falloff =
                 1 -
                 d /
@@ -1267,13 +1396,44 @@ function createExplosion(
 
 
 // ======================================================
-// POWER UPS
+// STACK POWERUPS
+// ======================================================
+
+function addTimedStack(
+    key,
+    durationPerPickup
+) {
+    const buff =
+        buffs[key];
+
+
+    buff.stacks =
+        Math.min(
+            buff.maxStacks,
+            buff.stacks + 1
+        );
+
+
+    // Adds time instead of resetting it
+    buff.time +=
+        durationPerPickup;
+
+
+    // Max 30 seconds stored
+    buff.time =
+        Math.min(
+            buff.time,
+            30000
+        );
+}
+
+
+// ======================================================
+// ACTIVATE POWERUP
 // ======================================================
 
 function activatePowerup(key) {
-
     switch (key) {
-
         case "heal":
 
             player.health =
@@ -1281,7 +1441,7 @@ function activatePowerup(key) {
                     player.maxHealth,
 
                     player.health +
-                    75
+                    80
                 );
 
             break;
@@ -1291,9 +1451,10 @@ function activatePowerup(key) {
 
             player.shield =
                 Math.min(
-                    150,
+                    250,
+
                     player.shield +
-                    75
+                    85
                 );
 
             break;
@@ -1301,76 +1462,72 @@ function activatePowerup(key) {
 
         case "quad":
 
-            buffs.quad =
-                8000;
+            addTimedStack(
+                "quad",
+                7000
+            );
 
             break;
 
 
         case "haste":
 
-            buffs.haste =
-                10000;
+            addTimedStack(
+                "haste",
+                8000
+            );
 
             break;
 
 
         case "overdrive":
 
-            buffs.overdrive =
-                7000;
+            addTimedStack(
+                "overdrive",
+                6500
+            );
 
             break;
 
 
         case "magnet":
 
-            buffs.magnet =
-                12000;
+            addTimedStack(
+                "magnet",
+                10000
+            );
 
             break;
 
 
         case "berserk":
 
-            buffs.berserk =
-                9000;
+            addTimedStack(
+                "berserk",
+                7500
+            );
 
             break;
 
 
         case "nuke":
 
-            explosions.push({
+            createExplosion(
+                player.x,
+                player.y,
 
-                x:
-                    width / 2,
+                Math.max(
+                    width,
+                    height
+                ) *
+                1.45,
 
-                y:
-                    height / 2,
+                999999,
 
-                radius: 0,
+                550,
 
-                maxRadius:
-                    Math.max(
-                        width,
-                        height
-                    ),
-
-                life: 500
-            });
-
-
-            for (
-                const enemy
-                of enemies
-            ) {
-
-                damageEnemy(
-                    enemy,
-                    999999
-                );
-            }
+                "#ffffff"
+            );
 
             break;
     }
@@ -1382,7 +1539,6 @@ function activatePowerup(key) {
 // ======================================================
 
 function updatePlayer(delta) {
-
     let dx = 0;
     let dy = 0;
 
@@ -1423,19 +1579,20 @@ function updatePlayer(delta) {
         player.speed;
 
 
-    if (
-        buffs.berserk >
-        0
-    ) {
-        speed *= 1.35;
-    }
+    // Berserk also stacks movement speed
 
+    speed *=
+        1 +
+        buffs.berserk.stacks *
+        0.12;
+
+
+    // KEYBOARD
 
     if (
         dx !== 0 ||
         dy !== 0
     ) {
-
         const length =
             Math.hypot(
                 dx,
@@ -1452,6 +1609,7 @@ function updatePlayer(delta) {
             speed *
             delta;
 
+
         player.y +=
             dy *
             speed *
@@ -1459,10 +1617,11 @@ function updatePlayer(delta) {
     }
 
 
+    // TOUCH / MOUSE
+
     else if (
         pointerActive
     ) {
-
         dx =
             pointerX -
             player.x;
@@ -1482,7 +1641,6 @@ function updatePlayer(delta) {
         if (
             d > 5
         ) {
-
             const amount =
                 Math.min(
                     speed *
@@ -1496,6 +1654,7 @@ function updatePlayer(delta) {
                 dx /
                 d *
                 amount;
+
 
             player.y +=
                 dy /
@@ -1537,7 +1696,6 @@ function updatePlayer(delta) {
 // ======================================================
 
 function updateEnemies(delta) {
-
     for (
         let i =
             enemies.length - 1;
@@ -1546,7 +1704,6 @@ function updateEnemies(delta) {
 
         i--
     ) {
-
         const enemy =
             enemies[i];
 
@@ -1554,7 +1711,6 @@ function updateEnemies(delta) {
         if (
             enemy.dead
         ) {
-
             enemies.splice(
                 i,
                 1
@@ -1568,14 +1724,12 @@ function updateEnemies(delta) {
             enemy.slowTimer >
             0
         ) {
-
             enemy.slowTimer -=
                 delta *
                 1000;
         }
 
         else {
-
             enemy.speed =
                 enemy.baseSpeed;
         }
@@ -1600,12 +1754,12 @@ function updateEnemies(delta) {
         if (
             d > 0
         ) {
-
             enemy.x +=
                 dx /
                 d *
                 enemy.speed *
                 delta;
+
 
             enemy.y +=
                 dy /
@@ -1625,9 +1779,9 @@ function updateEnemies(delta) {
                 player,
                 enemy
             ) &&
-            enemy.hitCooldown <= 0
+            enemy.hitCooldown <=
+            0
         ) {
-
             let damage =
                 enemy.damage;
 
@@ -1636,7 +1790,6 @@ function updateEnemies(delta) {
                 player.shield >
                 0
             ) {
-
                 const absorbed =
                     Math.min(
                         player.shield,
@@ -1646,6 +1799,7 @@ function updateEnemies(delta) {
 
                 player.shield -=
                     absorbed;
+
 
                 damage -=
                     absorbed;
@@ -1664,7 +1818,6 @@ function updateEnemies(delta) {
                 player.health <=
                 0
             ) {
-
                 player.health = 0;
 
                 endGame();
@@ -1675,11 +1828,10 @@ function updateEnemies(delta) {
 
 
 // ======================================================
-// BULLETS
+// BULLET UPDATE
 // ======================================================
 
 function updateBullets(delta) {
-
     for (
         let i =
             bullets.length - 1;
@@ -1688,7 +1840,6 @@ function updateBullets(delta) {
 
         i--
     ) {
-
         const bullet =
             bullets[i];
 
@@ -1698,11 +1849,12 @@ function updateBullets(delta) {
             1000;
 
 
+        // HOMING
+
         if (
             bullet.type ===
             "homing"
         ) {
-
             const target =
                 findNearestEnemy(
                     bullet
@@ -1710,7 +1862,6 @@ function updateBullets(delta) {
 
 
             if (target) {
-
                 const targetAngle =
                     Math.atan2(
                         target.y -
@@ -1767,22 +1918,111 @@ function updateBullets(delta) {
         }
 
 
+        // SINGULARITY PULL
+
+        if (
+            bullet.type ===
+            "singularity"
+        ) {
+            for (
+                const enemy
+                of enemies
+            ) {
+                if (
+                    enemy.dead
+                ) {
+                    continue;
+                }
+
+
+                const dx =
+                    bullet.x -
+                    enemy.x;
+
+                const dy =
+                    bullet.y -
+                    enemy.y;
+
+
+                const d =
+                    Math.hypot(
+                        dx,
+                        dy
+                    );
+
+
+                if (
+                    d > 1 &&
+                    d <
+                    bullet.pullRadius
+                ) {
+                    const pull =
+                        bullet.pullStrength *
+                        (
+                            1 -
+                            d /
+                            bullet.pullRadius
+                        ) *
+                        delta;
+
+
+                    enemy.x +=
+                        dx /
+                        d *
+                        pull;
+
+
+                    enemy.y +=
+                        dy /
+                        d *
+                        pull;
+                }
+            }
+        }
+
+
         bullet.x +=
             bullet.vx *
             delta;
+
 
         bullet.y +=
             bullet.vy *
             delta;
 
 
-        if (
+        const expired =
             bullet.life <= 0 ||
-            bullet.x < -150 ||
-            bullet.x > width + 150 ||
-            bullet.y < -150 ||
-            bullet.y > height + 150
-        ) {
+
+            bullet.x < -180 ||
+
+            bullet.x >
+            width + 180 ||
+
+            bullet.y < -180 ||
+
+            bullet.y >
+            height + 180;
+
+
+        if (expired) {
+            if (
+                bullet.type ===
+                "singularity"
+            ) {
+                createExplosion(
+                    bullet.x,
+                    bullet.y,
+
+                    bullet.explosionRadius,
+                    bullet.explosionDamage,
+
+                    350,
+
+                    bullet.color
+                );
+            }
+
 
             bullets.splice(
                 i,
@@ -1801,7 +2041,6 @@ function updateBullets(delta) {
             const enemy
             of enemies
         ) {
-
             if (
                 enemy.dead ||
                 bullet.hitEnemies.has(
@@ -1818,7 +2057,6 @@ function updateBullets(delta) {
                     enemy
                 )
             ) {
-
                 bullet.hitEnemies.add(
                     enemy
                 );
@@ -1835,32 +2073,40 @@ function updateBullets(delta) {
                 );
 
 
+                // FROST
+
                 if (
                     bullet.type ===
                     "frost"
                 ) {
-
                     enemy.speed =
                         enemy.baseSpeed *
                         bullet.slow;
+
 
                     enemy.slowTimer =
                         bullet.slowTime;
                 }
 
 
+                // VOID EXPLOSION
+
                 if (
                     bullet.type ===
                     "explosive"
                 ) {
-
                     createExplosion(
                         bullet.x,
                         bullet.y,
 
                         bullet.explosionRadius,
-                        bullet.explosionDamage
+                        bullet.explosionDamage,
+
+                        300,
+
+                        bullet.color
                     );
+
 
                     removeBullet =
                         true;
@@ -1869,11 +2115,38 @@ function updateBullets(delta) {
                 }
 
 
+                // SINGULARITY EXPLOSION
+
+                if (
+                    bullet.type ===
+                    "singularity"
+                ) {
+                    createExplosion(
+                        bullet.x,
+                        bullet.y,
+
+                        bullet.explosionRadius,
+                        bullet.explosionDamage,
+
+                        350,
+
+                        bullet.color
+                    );
+
+
+                    removeBullet =
+                        true;
+
+                    break;
+                }
+
+
+                // RAILGUN
+
                 if (
                     bullet.pierce >
                     0
                 ) {
-
                     bullet.pierce--;
 
                     continue;
@@ -1891,7 +2164,6 @@ function updateBullets(delta) {
         if (
             removeBullet
         ) {
-
             bullets.splice(
                 i,
                 1
@@ -1905,10 +2177,7 @@ function updateBullets(delta) {
 // SOLAR BLADES
 // ======================================================
 
-function updateSolarBlades(
-    delta
-) {
-
+function updateSolarBlades(delta) {
     const weapon =
         getCurrentWeapon();
 
@@ -1923,43 +2192,48 @@ function updateSolarBlades(
 
     orbitAngle +=
         delta *
-        3.5;
+        3.8;
+
+
+    // Overdrive adds blades
+
+    const bladeCount =
+        weapon.blades +
+        buffs.overdrive.stacks;
 
 
     for (
         let i = 0;
         i <
-        weapon.blades;
+        bladeCount;
         i++
     ) {
-
         const angle =
             orbitAngle +
             (
                 Math.PI *
                 2 /
-                weapon.blades
+                bladeCount
             ) *
             i;
 
 
         const blade = {
-
             x:
                 player.x +
                 Math.cos(
                     angle
                 ) *
-                75,
+                72,
 
             y:
                 player.y +
                 Math.sin(
                     angle
                 ) *
-                75,
+                72,
 
-            radius: 13
+            radius: 12
         };
 
 
@@ -1967,10 +2241,11 @@ function updateSolarBlades(
             const enemy
             of enemies
         ) {
-
             if (
                 enemy.dead
-            ) continue;
+            ) {
+                continue;
+            }
 
 
             if (
@@ -1978,14 +2253,11 @@ function updateSolarBlades(
                     blade,
                     enemy
                 ) &&
-                (
-                    !enemy.bladeHit ||
-                    performance.now() -
-                    enemy.bladeHit >
-                    250
-                )
-            ) {
 
+                performance.now() -
+                enemy.bladeHit >
+                230
+            ) {
                 damageEnemy(
                     enemy,
                     weapon.damage
@@ -2001,146 +2273,13 @@ function updateSolarBlades(
 
 
 // ======================================================
-// PICKUPS UPDATE
+// MAGNET
 // ======================================================
-
-function updatePickups(delta) {
-
-    for (
-        let i =
-            weaponPickups.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-
-        const pickup =
-            weaponPickups[i];
-
-
-        pickup.life -=
-            delta *
-            1000;
-
-
-        if (
-            buffs.magnet > 0
-        ) {
-
-            pullPickupToPlayer(
-                pickup,
-                delta
-            );
-        }
-
-
-        if (
-            pickup.life <= 0
-        ) {
-
-            weaponPickups.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        if (
-            circlesTouch(
-                player,
-                pickup
-            )
-        ) {
-
-            player.weaponKey =
-                pickup.weaponKey;
-
-
-            weaponPickups.splice(
-                i,
-                1
-            );
-        }
-    }
-
-
-    for (
-        let i =
-            powerups.length - 1;
-
-        i >= 0;
-
-        i--
-    ) {
-
-        const pickup =
-            powerups[i];
-
-
-        pickup.life -=
-            delta *
-            1000;
-
-
-        pickup.pulse +=
-            delta *
-            5;
-
-
-        if (
-            buffs.magnet >
-            0
-        ) {
-
-            pullPickupToPlayer(
-                pickup,
-                delta
-            );
-        }
-
-
-        if (
-            pickup.life <= 0
-        ) {
-
-            powerups.splice(
-                i,
-                1
-            );
-
-            continue;
-        }
-
-
-        if (
-            circlesTouch(
-                player,
-                pickup
-            )
-        ) {
-
-            activatePowerup(
-                pickup.key
-            );
-
-
-            powerups.splice(
-                i,
-                1
-            );
-        }
-    }
-}
-
 
 function pullPickupToPlayer(
     pickup,
     delta
 ) {
-
     const dx =
         player.x -
         pickup.x;
@@ -2157,22 +2296,167 @@ function pullPickupToPlayer(
         );
 
 
+    const range =
+        300 +
+        buffs.magnet.stacks *
+        90;
+
+
+    const speed =
+        350 +
+        buffs.magnet.stacks *
+        80;
+
+
     if (
-        d < 300 &&
+        d <
+        range &&
         d > 1
     ) {
-
         pickup.x +=
             dx /
             d *
-            350 *
+            speed *
             delta;
+
 
         pickup.y +=
             dy /
             d *
-            350 *
+            speed *
             delta;
+    }
+}
+
+
+// ======================================================
+// PICKUPS UPDATE
+// ======================================================
+
+function updatePickups(delta) {
+    // WEAPONS
+
+    for (
+        let i =
+            weaponPickups.length - 1;
+
+        i >= 0;
+
+        i--
+    ) {
+        const pickup =
+            weaponPickups[i];
+
+
+        pickup.life -=
+            delta *
+            1000;
+
+
+        if (
+            buffs.magnet.stacks >
+            0
+        ) {
+            pullPickupToPlayer(
+                pickup,
+                delta
+            );
+        }
+
+
+        if (
+            pickup.life <= 0
+        ) {
+            weaponPickups.splice(
+                i,
+                1
+            );
+
+            continue;
+        }
+
+
+        if (
+            circlesTouch(
+                player,
+                pickup
+            )
+        ) {
+            player.weaponKey =
+                pickup.weaponKey;
+
+
+            weaponPickups.splice(
+                i,
+                1
+            );
+        }
+    }
+
+
+    // POWERUPS
+
+    for (
+        let i =
+            powerups.length - 1;
+
+        i >= 0;
+
+        i--
+    ) {
+        const pickup =
+            powerups[i];
+
+
+        pickup.life -=
+            delta *
+            1000;
+
+
+        pickup.pulse +=
+            delta *
+            5;
+
+
+        if (
+            buffs.magnet.stacks >
+            0
+        ) {
+            pullPickupToPlayer(
+                pickup,
+                delta
+            );
+        }
+
+
+        if (
+            pickup.life <= 0
+        ) {
+            powerups.splice(
+                i,
+                1
+            );
+
+            continue;
+        }
+
+
+        if (
+            circlesTouch(
+                player,
+                pickup
+            )
+        ) {
+            activatePowerup(
+                pickup.key
+            );
+
+
+            powerups.splice(
+                i,
+                1
+            );
+        }
     }
 }
 
@@ -2182,7 +2466,6 @@ function pullPickupToPlayer(
 // ======================================================
 
 function updateBuffs(delta) {
-
     const elapsed =
         delta *
         1000;
@@ -2192,24 +2475,27 @@ function updateBuffs(delta) {
         const key
         in buffs
     ) {
+        const buff =
+            buffs[key];
+
 
         if (
-            buffs[key] >
-            0
+            buff.time <= 0
         ) {
+            continue;
+        }
 
-            buffs[key] -=
-                elapsed;
+
+        buff.time -=
+            elapsed;
 
 
-            if (
-                buffs[key] <
-                0
-            ) {
+        if (
+            buff.time <= 0
+        ) {
+            buff.time = 0;
 
-                buffs[key] =
-                    0;
-            }
+            buff.stacks = 0;
         }
     }
 }
@@ -2223,15 +2509,12 @@ function createHitParticles(
     x,
     y
 ) {
-
     for (
         let i = 0;
         i < 3;
         i++
     ) {
-
         particles.push({
-
             x,
             y,
 
@@ -2264,15 +2547,12 @@ function createDeathParticles(
     x,
     y
 ) {
-
     for (
         let i = 0;
         i < 10;
         i++
     ) {
-
         particles.push({
-
             x,
             y,
 
@@ -2301,7 +2581,12 @@ function createDeathParticles(
 }
 
 
+// ======================================================
+// EFFECT UPDATE
+// ======================================================
+
 function updateEffects(delta) {
+    // PARTICLES
 
     for (
         let i =
@@ -2311,7 +2596,6 @@ function updateEffects(delta) {
 
         i--
     ) {
-
         const p =
             particles[i];
 
@@ -2333,7 +2617,6 @@ function updateEffects(delta) {
         if (
             p.life <= 0
         ) {
-
             particles.splice(
                 i,
                 1
@@ -2341,6 +2624,8 @@ function updateEffects(delta) {
         }
     }
 
+
+    // EXPLOSIONS
 
     for (
         let i =
@@ -2350,7 +2635,6 @@ function updateEffects(delta) {
 
         i--
     ) {
-
         const e =
             explosions[i];
 
@@ -2360,19 +2644,34 @@ function updateEffects(delta) {
             1000;
 
 
+        const progress =
+            Math.max(
+                0,
+
+                Math.min(
+                    1,
+
+                    1 -
+                    e.life /
+                    e.duration
+                )
+            );
+
+
+        // Prevents negative radius crash
+
         e.radius =
-            e.maxRadius *
-            (
-                1 -
-                e.life /
-                300
+            Math.max(
+                0,
+
+                e.maxRadius *
+                progress
             );
 
 
         if (
             e.life <= 0
         ) {
-
             explosions.splice(
                 i,
                 1
@@ -2380,6 +2679,8 @@ function updateEffects(delta) {
         }
     }
 
+
+    // LIGHTNING
 
     for (
         let i =
@@ -2390,8 +2691,8 @@ function updateEffects(delta) {
 
         i--
     ) {
-
-        lightningEffects[i].life -=
+        lightningEffects[i]
+            .life -=
             delta *
             1000;
 
@@ -2400,7 +2701,6 @@ function updateEffects(delta) {
             lightningEffects[i]
                 .life <= 0
         ) {
-
             lightningEffects.splice(
                 i,
                 1
@@ -2411,13 +2711,13 @@ function updateEffects(delta) {
 
 
 // ======================================================
-// BACKGROUND
+// DRAW BACKGROUND
 // ======================================================
 
 function drawBackground() {
-
     ctx.fillStyle =
         "#111820";
+
 
     ctx.fillRect(
         0,
@@ -2430,6 +2730,7 @@ function drawBackground() {
     ctx.strokeStyle =
         "rgba(255,255,255,0.035)";
 
+
     ctx.lineWidth = 1;
 
 
@@ -2441,7 +2742,6 @@ function drawBackground() {
         x < width;
         x += spacing
     ) {
-
         ctx.beginPath();
 
         ctx.moveTo(
@@ -2463,7 +2763,6 @@ function drawBackground() {
         y < height;
         y += spacing
     ) {
-
         ctx.beginPath();
 
         ctx.moveTo(
@@ -2486,17 +2785,16 @@ function drawBackground() {
 // ======================================================
 
 function drawPlayer() {
-
     if (
         player.shield >
         0
     ) {
-
         ctx.beginPath();
 
         ctx.arc(
             player.x,
             player.y,
+
             player.radius +
             8,
 
@@ -2505,8 +2803,10 @@ function drawPlayer() {
             2
         );
 
+
         ctx.strokeStyle =
             "#55cfff";
+
 
         ctx.lineWidth = 4;
 
@@ -2526,6 +2826,7 @@ function drawPlayer() {
         2
     );
 
+
     ctx.fillStyle =
         player.color;
 
@@ -2542,19 +2843,18 @@ function drawPlayer() {
 
 
 // ======================================================
-// DRAW ENEMIES
+// DRAW HIPPOS
 // ======================================================
 
 function drawEnemies() {
-
     for (
         const enemy
         of enemies
     ) {
-
+        // Smaller image
         const size =
             enemy.radius *
-            2.9;
+            2.65;
 
 
         if (
@@ -2562,9 +2862,7 @@ function drawEnemies() {
             hippoImage.naturalWidth >
             0
         ) {
-
             ctx.drawImage(
-
                 hippoImage,
 
                 enemy.x -
@@ -2580,9 +2878,7 @@ function drawEnemies() {
             );
         }
 
-
         else {
-
             ctx.beginPath();
 
             ctx.arc(
@@ -2595,6 +2891,7 @@ function drawEnemies() {
                 2
             );
 
+
             ctx.fillStyle =
                 "#ff456c";
 
@@ -2602,29 +2899,28 @@ function drawEnemies() {
         }
 
 
-        // HP bar
+        // HP BAR
 
         if (
             enemy.health <
             enemy.maxHealth
         ) {
-
             const barWidth =
-                35;
+                32;
 
 
             ctx.fillStyle =
                 "#250000";
 
-            ctx.fillRect(
 
+            ctx.fillRect(
                 enemy.x -
                 barWidth /
                 2,
 
                 enemy.y -
                 enemy.radius -
-                9,
+                8,
 
                 barWidth,
                 4
@@ -2634,15 +2930,15 @@ function drawEnemies() {
             ctx.fillStyle =
                 "#ff4444";
 
-            ctx.fillRect(
 
+            ctx.fillRect(
                 enemy.x -
                 barWidth /
                 2,
 
                 enemy.y -
                 enemy.radius -
-                9,
+                8,
 
                 barWidth *
                 Math.max(
@@ -2664,16 +2960,19 @@ function drawEnemies() {
 // ======================================================
 
 function drawBullets() {
-
     for (
         const bullet
         of bullets
     ) {
-
         ctx.save();
 
 
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur =
+            bullet.type ===
+            "singularity"
+                ? 25
+                : 12;
+
 
         ctx.shadowColor =
             bullet.color;
@@ -2684,7 +2983,11 @@ function drawBullets() {
         ctx.arc(
             bullet.x,
             bullet.y,
-            bullet.radius,
+
+            Math.max(
+                0,
+                bullet.radius
+            ),
 
             0,
             Math.PI *
@@ -2698,17 +3001,51 @@ function drawBullets() {
         ctx.fill();
 
 
+        // Singularity outer ring
+
+        if (
+            bullet.type ===
+            "singularity"
+        ) {
+            ctx.beginPath();
+
+            ctx.arc(
+                bullet.x,
+                bullet.y,
+
+                Math.max(
+                    0,
+
+                    bullet.radius +
+                    8
+                ),
+
+                0,
+                Math.PI *
+                2
+            );
+
+
+            ctx.strokeStyle =
+                "rgba(255,255,255,0.6)";
+
+
+            ctx.lineWidth = 2;
+
+            ctx.stroke();
+        }
+
+
         ctx.restore();
     }
 }
 
 
 // ======================================================
-// SOLAR BLADES DRAW
+// DRAW SOLAR BLADES
 // ======================================================
 
 function drawSolarBlades() {
-
     const weapon =
         getCurrentWeapon();
 
@@ -2721,19 +3058,23 @@ function drawSolarBlades() {
     }
 
 
+    const bladeCount =
+        weapon.blades +
+        buffs.overdrive.stacks;
+
+
     for (
         let i = 0;
         i <
-        weapon.blades;
+        bladeCount;
         i++
     ) {
-
         const angle =
             orbitAngle +
             (
                 Math.PI *
                 2 /
-                weapon.blades
+                bladeCount
             ) *
             i;
 
@@ -2743,7 +3084,7 @@ function drawSolarBlades() {
             Math.cos(
                 angle
             ) *
-            75;
+            72;
 
 
         const y =
@@ -2751,23 +3092,22 @@ function drawSolarBlades() {
             Math.sin(
                 angle
             ) *
-            75;
+            72;
 
 
         ctx.save();
+
 
         ctx.translate(
             x,
             y
         );
 
-        ctx.rotate(
-            angle
-        );
+
+        ctx.rotate(angle);
 
 
-        ctx.shadowBlur =
-            15;
+        ctx.shadowBlur = 15;
 
         ctx.shadowColor =
             weapon.color;
@@ -2780,7 +3120,6 @@ function drawSolarBlades() {
         ctx.fillRect(
             -5,
             -18,
-
             10,
             36
         );
@@ -2792,16 +3131,14 @@ function drawSolarBlades() {
 
 
 // ======================================================
-// DRAW PICKUPS
+// DRAW WEAPON PICKUPS
 // ======================================================
 
 function drawWeaponPickups() {
-
     for (
         const pickup
         of weaponPickups
     ) {
-
         const weapon =
             WEAPONS[
                 pickup.weaponKey
@@ -2810,12 +3147,15 @@ function drawWeaponPickups() {
 
         ctx.save();
 
+
         ctx.shadowBlur = 18;
+
         ctx.shadowColor =
             weapon.color;
 
 
         ctx.beginPath();
+
 
         ctx.arc(
             pickup.x,
@@ -2845,21 +3185,59 @@ function drawWeaponPickups() {
         ctx.fillStyle =
             "#fff";
 
+
         ctx.font =
             "bold 9px Arial";
 
+
         ctx.textAlign =
             "center";
+
 
         ctx.textBaseline =
             "middle";
 
 
-        ctx.fillText(
-            weapon.name,
-            pickup.x,
-            pickup.y
-        );
+        const words =
+            weapon.name.split(
+                " "
+            );
+
+
+        if (
+            words.length >
+            1
+        ) {
+            ctx.fillText(
+                words[0],
+
+                pickup.x,
+
+                pickup.y -
+                5
+            );
+
+
+            ctx.fillText(
+                words
+                    .slice(1)
+                    .join(" "),
+
+                pickup.x,
+
+                pickup.y +
+                6
+            );
+        }
+
+        else {
+            ctx.fillText(
+                weapon.name,
+
+                pickup.x,
+                pickup.y
+            );
+        }
 
 
         ctx.restore();
@@ -2867,13 +3245,15 @@ function drawWeaponPickups() {
 }
 
 
-function drawPowerups() {
+// ======================================================
+// DRAW POWERUPS
+// ======================================================
 
+function drawPowerups() {
     for (
         const pickup
         of powerups
     ) {
-
         const data =
             POWERUPS[
                 pickup.key
@@ -2891,8 +3271,7 @@ function drawPowerups() {
         ctx.save();
 
 
-        ctx.shadowBlur =
-            20;
+        ctx.shadowBlur = 20;
 
         ctx.shadowColor =
             data.color;
@@ -2900,12 +3279,17 @@ function drawPowerups() {
 
         ctx.beginPath();
 
+
         ctx.arc(
             pickup.x,
             pickup.y,
 
-            pickup.radius *
-            pulse,
+            Math.max(
+                0,
+
+                pickup.radius *
+                pulse
+            ),
 
             0,
             Math.PI *
@@ -2922,11 +3306,14 @@ function drawPowerups() {
         ctx.fillStyle =
             "#111";
 
+
         ctx.font =
-            "bold 9px Arial";
+            "bold 8px Arial";
+
 
         ctx.textAlign =
             "center";
+
 
         ctx.textBaseline =
             "middle";
@@ -2934,6 +3321,7 @@ function drawPowerups() {
 
         ctx.fillText(
             data.name,
+
             pickup.x,
             pickup.y
         );
@@ -2949,18 +3337,23 @@ function drawPowerups() {
 // ======================================================
 
 function drawEffects() {
+    // PARTICLES
 
     for (
         const particle
         of particles
     ) {
-
         ctx.beginPath();
+
 
         ctx.arc(
             particle.x,
             particle.y,
-            particle.radius,
+
+            Math.max(
+                0,
+                particle.radius
+            ),
 
             0,
             Math.PI *
@@ -2975,11 +3368,12 @@ function drawEffects() {
     }
 
 
+    // EXPLOSIONS
+
     for (
         const explosion
         of explosions
     ) {
-
         ctx.save();
 
 
@@ -2988,16 +3382,21 @@ function drawEffects() {
                 0,
 
                 explosion.life /
-                300
+                explosion.duration
             );
 
 
         ctx.beginPath();
 
+
         ctx.arc(
             explosion.x,
             explosion.y,
-            explosion.radius,
+
+            Math.max(
+                0,
+                explosion.radius
+            ),
 
             0,
             Math.PI *
@@ -3006,7 +3405,8 @@ function drawEffects() {
 
 
         ctx.strokeStyle =
-            "#c45cff";
+            explosion.color;
+
 
         ctx.lineWidth = 10;
 
@@ -3017,15 +3417,16 @@ function drawEffects() {
     }
 
 
+    // LIGHTNING
+
     for (
         const lightning
         of lightningEffects
     ) {
-
         ctx.save();
 
-        ctx.shadowBlur =
-            15;
+
+        ctx.shadowBlur = 15;
 
         ctx.shadowColor =
             lightning.color;
@@ -3034,10 +3435,12 @@ function drawEffects() {
         ctx.strokeStyle =
             lightning.color;
 
+
         ctx.lineWidth = 4;
 
 
         ctx.beginPath();
+
 
         ctx.moveTo(
             lightning.x1,
@@ -3050,10 +3453,10 @@ function drawEffects() {
 
         for (
             let i = 1;
-            i < segments;
+            i <
+            segments;
             i++
         ) {
-
             const t =
                 i /
                 segments;
@@ -3108,25 +3511,24 @@ function drawEffects() {
 
 
 // ======================================================
-// ACTIVE BUFF DISPLAY
+// DRAW ACTIVE BUFFS
 // ======================================================
 
 function drawBuffs() {
-
-    let y = 65;
+    let y = 62;
 
 
     ctx.textAlign =
         "left";
 
+
     ctx.font =
-        "bold 13px Arial";
+        "bold 12px Arial";
 
 
     const labels = {
-
         quad:
-            "4X DAMAGE",
+            "DAMAGE",
 
         haste:
             "HASTE",
@@ -3146,10 +3548,13 @@ function drawBuffs() {
         const key
         in buffs
     ) {
+        const buff =
+            buffs[key];
+
 
         if (
-            buffs[key] <=
-            0
+            buff.stacks <= 0 ||
+            buff.time <= 0
         ) {
             continue;
         }
@@ -3160,20 +3565,14 @@ function drawBuffs() {
 
 
         ctx.fillText(
-
-            labels[key] +
-            " " +
-            (
-                buffs[key] /
-                1000
-            ).toFixed(1),
+            `${labels[key]} x${buff.stacks} ${(buff.time / 1000).toFixed(1)}s`,
 
             12,
             y
         );
 
 
-        y += 18;
+        y += 17;
     }
 
 
@@ -3181,13 +3580,11 @@ function drawBuffs() {
         player.shield >
         0
     ) {
-
         ctx.fillStyle =
             "#70dcff";
 
 
         ctx.fillText(
-
             "SHIELD " +
             Math.ceil(
                 player.shield
@@ -3205,7 +3602,6 @@ function drawBuffs() {
 // ======================================================
 
 function updateHUD() {
-
     healthText.textContent =
         "HP: " +
         Math.ceil(
@@ -3229,7 +3625,6 @@ function updateHUD() {
 // ======================================================
 
 function endGame() {
-
     gameRunning = false;
 
 
@@ -3249,7 +3644,6 @@ function endGame() {
 // ======================================================
 
 function resetGame() {
-
     enemies = [];
 
     bullets = [];
@@ -3271,6 +3665,7 @@ function resetGame() {
     player.x =
         width / 2;
 
+
     player.y =
         height / 2;
 
@@ -3290,8 +3685,9 @@ function resetGame() {
         const key
         in buffs
     ) {
+        buffs[key].stacks = 0;
 
-        buffs[key] = 0;
+        buffs[key].time = 0;
     }
 
 
@@ -3307,7 +3703,6 @@ function resetGame() {
     weaponSpawnTimer = 0;
 
     powerupSpawnTimer = 0;
-
 
     pointerActive = false;
 
@@ -3345,10 +3740,8 @@ restartButton.addEventListener(
 // ======================================================
 
 function gameLoop(time) {
-
     const delta =
         Math.min(
-
             (
                 time -
                 lastTime
@@ -3368,7 +3761,6 @@ function gameLoop(time) {
     if (
         gameRunning
     ) {
-
         enemySpawnTimer +=
             delta *
             1000;
@@ -3386,7 +3778,6 @@ function gameLoop(time) {
 
         const enemySpawnRate =
             Math.max(
-
                 280,
 
                 1150 -
@@ -3399,7 +3790,6 @@ function gameLoop(time) {
             enemySpawnTimer >=
             enemySpawnRate
         ) {
-
             enemySpawnTimer = 0;
 
             spawnEnemy();
@@ -3408,9 +3798,8 @@ function gameLoop(time) {
 
         if (
             weaponSpawnTimer >=
-            9000
+            8500
         ) {
-
             weaponSpawnTimer = 0;
 
             spawnWeaponPickup();
@@ -3419,9 +3808,8 @@ function gameLoop(time) {
 
         if (
             powerupSpawnTimer >=
-            11000
+            9000
         ) {
-
             powerupSpawnTimer = 0;
 
             spawnPowerup();
@@ -3476,13 +3864,15 @@ function gameLoop(time) {
 
 
 // ======================================================
-// START
+// START GAME
 // ======================================================
 
 resizeCanvas();
 
+
 player.x =
     width / 2;
+
 
 player.y =
     height / 2;
@@ -3490,7 +3880,9 @@ player.y =
 
 refillWeaponBag();
 
+
 spawnWeaponPickup();
+
 spawnWeaponPickup();
 
 spawnPowerup();
