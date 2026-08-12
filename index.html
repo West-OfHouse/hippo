@@ -1,39 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
-
-    <title>Hippo Survival</title>
-
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Hippo Hell</title>
+<link rel="stylesheet" href="game.css">
 </head>
-
 <body>
+<canvas id="gameCanvas"></canvas>
 
-    <div id="game">
+<div id="hud">
+<span id="healthText">HP 150</span>
+<span id="weaponText">Pistol</span>
+<span id="scoreText">Score 0</span>
+</div>
 
-        <canvas id="gameCanvas"></canvas>
+<div id="topProgress">
+<div id="xpHUD">
+<span id="levelText">LV 1</span>
+<div id="xpTrack"><div id="xpBar"></div></div>
+</div>
+<div id="shieldHUD" class="hidden">SHIELD <span id="shieldText">0</span></div>
+</div>
 
-        <div id="hud">
-            <div id="healthText">HP: 100</div>
-            <div id="weaponText">Weapon: Pistol</div>
-            <div id="scoreText">Score: 0</div>
-        </div>
+<button id="dashButton">DASH</button>
 
-        <div id="gameOverScreen" class="hidden">
-            <h1>GAME OVER</h1>
-            <p id="finalScore">Score: 0</p>
-            <button id="restartButton">Restart</button>
-        </div>
+<div id="levelScreen" class="hidden">
+<div id="levelBox">
+<h1>LEVEL UP</h1>
+<div id="upgradeCards"></div>
+</div>
+</div>
 
-    </div>
+<div id="gameOverScreen" class="hidden">
+<div id="gameOverBox">
+<h1>GAME OVER</h1>
+<p id="finalScore"></p>
+<button id="restartButton">RESTART</button>
+</div>
+</div>
 
-    <script src="game.js"></script>
-
+<script src="game.js"></script>
 </body>
 </html>
