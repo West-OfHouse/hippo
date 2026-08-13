@@ -30,7 +30,7 @@ lightning:{n:"LIGHTNING",t:"ABILITY",r:"epic",d:"Automatic lightning strikes bec
 meteors:{n:"METEORS",t:"ABILITY",r:"epic",d:"Targets powerful hippos with increasingly large meteors.",e:"EXTINCTION: enormous meteors prioritize the strongest enemies."},
 chainreaction:{n:"CHAIN REACTION",t:"ABILITY",r:"epic",d:"Dead hippos explode and Arc/Prism recursion improves.",e:"CRITICAL MASS: reaction kills can explode again."},
 solar:{n:"SOLAR BLADES",t:"ABILITY",r:"legendary",d:"Starts with 2 blades. Levels add blades and damage.",e:"SOLAR GUARD: full 5-blade defensive orbit."},
-shockwave:{n:"SHOCKWAVE",t:"ABILITY",r:"epic",d:"Unlocks Shockwave on E. Levels reduce its cooldown.",e:"TESLA WAVE: Shockwave electrifies enemies as the ring reaches them."}
+shockwave:{n:"SHOCKWAVE",t:"ABILITY",r:"epic",d:"Unlocks Shockwave on E. Levels reduce cooldown and massively increase knockback.",e:"TESLA WAVE: Shockwave electrifies enemies as the ring reaches them."}
 };
 
 const G={
@@ -290,6 +290,7 @@ if(maxed()){finish();return}
 choosing=1;
 run=0;
 choiceIndex=0;
+
 lscr.classList.remove("hidden");
 
 menuUnlockAt=performance.now()+425;
@@ -300,6 +301,7 @@ if(K[k])menuBlocked.add(k)
 }
 
 let available=Object.keys(UP).filter(k=>UP[k]<5);
+
 let weapon=available.filter(k=>UD[k].t==="WEAPON MOD");
 let ability=available.filter(k=>UD[k].t==="ABILITY");
 let passive=available.filter(k=>UD[k].t==="PASSIVE");
@@ -313,6 +315,7 @@ if(k)pick.push(k)
 
 while(pick.length<3){
 let remaining=available.filter(k=>!pick.includes(k));
+
 if(!remaining.length)break;
 
 let k=pickUpgrade(remaining);
@@ -369,7 +372,12 @@ if(q)chooseUp(q.dataset.key)
 
 function shockMaxCD(){
 let n=UP.shockwave;
-return n===1?14:n===2?12:n===3?10:n===4?8:6
+
+return n===1?14:
+n===2?12:
+n===3?10:
+n===4?8:
+6
 }
 
 function chooseUp(k){
@@ -382,7 +390,9 @@ pl.maxHealth+=5;
 pl.health=Math.min(pl.maxHealth,pl.health+5)
 }
 
-if(k==="shockwave"&&UP[k]===1)shockCD=0;
+if(k==="shockwave"&&UP[k]===1){
+shockCD=0
+}
 
 pending--;
 choosing=0;
@@ -392,8 +402,9 @@ lscr.classList.add("hidden");
 
 if(maxed()){finish();return}
 
-if(pending)setTimeout(openLevel,0);
-else{
+if(pending){
+setTimeout(openLevel,0)
+}else{
 run=1;
 lt=performance.now()
 }
@@ -748,7 +759,8 @@ splitSpread:w.splitSpread||0,
 prismGen:o.prismGen??0,
 life:o.life??3000,
 targetX:o.targetX??null,
-targetY:o.targetY??null
+targetY:o.targetY??null,
+retarget:o.retarget??0
 })
 }
 
@@ -940,51 +952,76 @@ arcBeam(q,w,used)
 }
 }
 
-function clusterCenters(n){
+function singularityReservations(){
+let r=[];
+
+for(const b of B){
+if(b.type==="singularity"&&b.targetX!==null){
+r.push({x:b.targetX,y:b.targetY,rad:175})
+}
+}
+
+for(const q of BH){
+r.push({x:q.x,y:q.y,rad:q.pullRadius*.7})
+}
+
+return r
+}
+
+function reservedPoint(x0,y0,res){
+return res.some(q=>Math.hypot(x0-q.x,y0-q.y)<q.rad)
+}
+
+function bestClusterCenter(res=[]){
 let alive=E.filter(e=>!e.dead&&ons(e));
 
-if(!alive.length)return[];
+if(!alive.length)return null;
 
-let out=[],claimed=new Set();
-
-for(let k=0;k<n;k++){
-let best=null,bestScore=-1,bestGroup=null;
+let best=null,bestScore=-1;
 
 for(const e of alive){
-if(claimed.has(e))continue;
+let group=alive.filter(q=>Math.hypot(q.x-e.x,q.y-e.y)<220);
 
-let group=alive.filter(q=>!claimed.has(q)&&Math.hypot(q.x-e.x,q.y-e.y)<220);
+if(!group.length)continue;
 
-let score=group.reduce((s,q)=>s+(q.radius*q.radius)*(1+q.health/q.maxHealth),0);
+let sx=0,sy=0,sw=0,score=0;
 
-if(score>bestScore){
-bestScore=score;
-best=e;
-bestGroup=group
-}
-}
-
-if(!best||!bestGroup?.length)break;
-
-let sx=0,sy=0,sw=0;
-
-for(const q of bestGroup){
-let w=q.radius*q.radius;
+for(const q of group){
+let w=q.radius*q.radius*(1+q.health/q.maxHealth);
 
 sx+=q.x*w;
 sy+=q.y*w;
-sw+=w
+sw+=w;
+score+=w
 }
 
-let center={x:sx/sw,y:sy/sw};
+let cx=sx/sw,cy=sy/sw;
 
-out.push(center);
+if(reservedPoint(cx,cy,res)){
+score*=.12
+}
 
-for(const q of bestGroup){
-if(Math.hypot(q.x-center.x,q.y-center.y)<130){
-claimed.add(q)
+if(score>bestScore){
+bestScore=score;
+best={x:cx,y:cy,count:group.length,score}
 }
 }
+
+if(!best||bestScore<=0)return null;
+
+return best
+}
+
+function clusterCenters(n){
+let out=[],res=singularityReservations();
+
+for(let i=0;i<n;i++){
+let q=bestClusterCenter(res);
+
+if(!q)break;
+
+out.push(q);
+res.push({x:q.x,y:q.y,rad:185})
 }
 
 return out
@@ -995,23 +1032,16 @@ let w=G.singularity,m=UL("multishot"),n=1+Math.ceil(m/2),targets=clusterCenters(
 
 if(!targets.length)return;
 
-for(let i=0;i<n;i++){
-let q=targets[i]||targets[0],tx=q.x,ty=q.y;
+for(let i=0;i<targets.length;i++){
+let q=targets[i];
 
-if(i>=targets.length){
-let a=Math.atan2(q.y-pl.y,q.x-pl.x)+(i-(n-1)/2)*(.25+m*.06);
-let r=80+40*i;
-
-tx=Math.max(30,Math.min(W-30,q.x+Math.cos(a)*r));
-ty=Math.max(30,Math.min(H-30,q.y+Math.sin(a)*r))
-}
-
-let a=Math.atan2(ty-pl.y,tx-pl.x);
+let a=Math.atan2(q.y-pl.y,q.x-pl.x);
 
 cb(a,w,{
-targetX:tx,
-targetY:ty,
-life:5000
+targetX:q.x,
+targetY:q.y,
+life:5000,
+retarget:100
 })
 }
 }
@@ -1408,6 +1438,7 @@ weaponTime=0
 
 if(dtm>0){
 dtm-=dt;
+
 pl.x+=pl.dvx*dt*playerScale;
 pl.y+=pl.dvy*dt*playerScale
 }else{
@@ -1556,6 +1587,46 @@ b.vy=Math.sin(b.angle)*spd
 }
 
 if(b.type==="singularity"&&b.targetX!==null){
+b.retarget-=dt*1000;
+
+if(b.retarget<=0){
+b.retarget=100;
+
+let liveNear=E.filter(e=>
+!e.dead&&
+ons(e)&&
+Math.hypot(e.x-b.targetX,e.y-b.targetY)<190
+);
+
+if(liveNear.length<2){
+let reservations=singularityReservations().filter(q=>
+Math.hypot(q.x-b.targetX,q.y-b.targetY)>30
+);
+
+let q=bestClusterCenter(reservations);
+
+if(q){
+b.targetX=q.x;
+b.targetY=q.y
+}
+}else{
+let sx=0,sy=0,sw=0;
+
+for(const e of liveNear){
+let w=e.radius*e.radius*(1+e.health/e.maxHealth);
+
+sx+=e.x*w;
+sy+=e.y*w;
+sw+=w
+}
+
+if(sw){
+b.targetX=sx/sw;
+b.targetY=sy/sw
+}
+}
+}
+
 let dx=b.targetX-b.x,dy=b.targetY-b.y,d=Math.hypot(dx,dy);
 let step=spd*dt;
 
@@ -1943,40 +2014,74 @@ electric:UP.shockwave>=5
 })
 }
 
+function shockTargetFraction(type,n){
+if(type==="mega"){
+return Math.min(.82,.38+n*.088)
+}
+
+if(type==="tank"){
+return Math.min(.98,.48+n*.10)
+}
+
+if(type==="big"){
+return Math.min(1.04,.62+n*.09)
+}
+
+return Math.min(1.12,.76+n*.075)
+}
+
+function shockMomentum(type,n){
+let base=
+type==="mega"?900:
+type==="tank"?1650:
+type==="big"?2500:
+3650;
+
+return base*(.78+n*.14)
+}
+
 function usw(dt){
 for(let i=SW.length-1;i>=0;i--){
 let q=SW[i],old=q.radius;
 
 q.life-=dt;
+
 q.radius=q.maxRadius*(1-q.life/q.duration);
 
 for(const e of E){
 if(e.dead||q.hit.has(e))continue;
 
-let d=Math.hypot(e.x-q.x,e.y-q.y);
+let dist=Math.hypot(e.x-q.x,e.y-q.y);
 
-if(d>q.radius||d<old)continue;
+if(dist>q.radius||dist<old)continue;
 
 q.hit.add(e);
 
 let dx=e.x-q.x,dy=e.y-q.y,ddd=Math.hypot(dx,dy)||1;
 
-let falloff=Math.max(.38,1-d/q.maxRadius);
+let n=Math.max(1,UL("shockwave"));
 
-let res=e.type==="mega"?.50:
-e.type==="tank"?.65:
-e.type==="big"?.82:
-1;
+let targetDist=q.maxRadius*shockTargetFraction(e.type,n);
 
-let force=1450*falloff*res;
+let shove=Math.max(0,targetDist-dist);
+
+let maxInstant=
+e.type==="mega"?130+n*15:
+e.type==="tank"?220+n*28:
+e.type==="big"?300+n*38:
+390+n*55;
+
+shove=Math.min(shove,maxInstant);
+
+e.x+=dx/ddd*shove;
+e.y+=dy/ddd*shove;
+
+let force=shockMomentum(e.type,n);
 
 e.vx+=dx/ddd*force;
 e.vy+=dy/ddd*force;
 
-e.x+=dx/ddd*18*falloff*res;
-e.y+=dy/ddd*18*falloff*res;
-
-de(e,32+35*falloff,0,0,"#fff07a");
+de(e,36+n*8,0,0,"#fff07a");
 
 if(q.electric){
 L.push({
@@ -1988,7 +2093,7 @@ life:140,
 color:"#8fffff"
 });
 
-de(e,35,0,0,"#8fffff");
+de(e,35+n*5,0,0,"#8fffff");
 
 let cd=UL("conduction");
 
@@ -2842,28 +2947,28 @@ let a=q.life/q.duration;
 x.save();
 
 x.globalAlpha=.85*a;
-x.shadowBlur=35;
+x.shadowBlur=42;
 x.shadowColor=q.electric?"#8fffff":"#fff07a";
 x.strokeStyle=q.electric?"#8fffff":"#fff07a";
-x.lineWidth=q.electric?10:9;
+x.lineWidth=q.electric?12:11;
 
 x.beginPath();
 x.arc(q.x,q.y,q.radius,0,Math.PI*2);
 x.stroke();
 
-x.globalAlpha=.25*a;
-x.lineWidth=18;
+x.globalAlpha=.22*a;
+x.lineWidth=28;
 
 x.beginPath();
 x.arc(q.x,q.y,q.radius,0,Math.PI*2);
 x.stroke();
 
 if(q.electric){
-x.globalAlpha=.3*a;
-x.lineWidth=3;
+x.globalAlpha=.34*a;
+x.lineWidth=4;
 
 x.beginPath();
-x.arc(q.x,q.y,q.radius+11,0,Math.PI*2);
+x.arc(q.x,q.y,q.radius+14,0,Math.PI*2);
 x.stroke()
 }
 
